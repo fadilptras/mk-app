@@ -1,60 +1,62 @@
 import { useState } from 'react';
 
-export default function LoginView({ onLogin, onForgot }: any) {
+export default function LoginView({ onLogin, onForgot, onNewTenant }: any) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   return (
-    <>
-      <h2 className="text-xl font-semibold mb-2">
-        Selamat datang kembali
-      </h2>
-      <p className="text-gray-500 mb-4">
-        Masuk ke akunmu untuk melanjutkan
-      </p>
-
+    <div className="space-y-4">
       {/* EMAIL */}
-      <input
-        type="email"
-        placeholder="contoh@email.com"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        className="w-full p-3 rounded-xl border mb-3"
-      />
+      <div className="relative">
+        <input
+          type="email"
+          placeholder="Email Address"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full px-6 py-4 bg-white/10 border border-white/30 rounded-full text-white placeholder-white/60 focus:bg-white/20 focus:border-white focus:outline-none transition-all"
+        />
+      </div>
 
       {/* PASSWORD */}
-      <input
-        type="password"
-        placeholder="Masukkan password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        className="w-full p-3 rounded-xl border mb-2"
-      />
+      <div className="relative">
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full px-6 py-4 bg-white/10 border border-white/30 rounded-full text-white placeholder-white/60 focus:bg-white/20 focus:border-white focus:outline-none transition-all"
+        />
+      </div>
 
-      {/* FORGOT */}
-      <div className="text-right mb-4">
-        <button
-          onClick={onForgot}
-          className="text-blue-600 text-sm"
-        >
+      {/* FORGOT PASSWORD */}
+      <div className="text-center mt-2 mb-6">
+        <button onClick={onForgot} className="text-sm text-white/80 hover:text-white transition">
           Lupa password?
         </button>
       </div>
 
-      {/* LOGIN BUTTON */}
+      {/* LOGIN BUTTON - Cyan Terang */}
       <button
         onClick={() => onLogin(email, password)}
-        className="w-full bg-blue-600 text-white p-3 rounded-xl font-semibold hover:bg-blue-700"
+        className="w-full bg-[#00D4FF] hover:bg-[#00B8E6] text-[#041533] py-4 rounded-full text-sm font-extrabold tracking-wider uppercase transition-all shadow-[0_4px_20px_rgba(0,212,255,0.4)]"
       >
-        Masuk
+        Login
       </button>
 
-      <div className="text-center my-4 text-gray-400">atau</div>
+      {/* SEPARATOR */}
+      <div className="flex items-center gap-4 py-4">
+          <div className="h-[1px] flex-1 bg-white/20"></div>
+          <span className="text-xs text-white/50 uppercase tracking-widest">Sign Up</span>
+          <div className="h-[1px] flex-1 bg-white/20"></div>
+      </div>
 
-      {/* REGISTER */}
-      <button className="w-full border border-blue-600 text-blue-600 p-3 rounded-xl font-semibold">
-        Saya penghuni baru
+      {/* REGISTER BUTTON - Border Outline */}
+      <button 
+        onClick={onNewTenant}
+        className="w-full border-2 border-white/50 text-white py-4 rounded-full text-sm font-bold hover:bg-white/10 transition-all uppercase tracking-wider"
+      >
+        Saya Penghuni Baru
       </button>
-    </>
+    </div>
   );
 }

@@ -5,6 +5,8 @@ interface NewTenantViewProps {
   onBackToLogin: () => void;
 }
 
+const inputClass = "w-full px-4 py-3 bg-[#F7FBFF] border-[1.5px] border-[#D0E4F7] rounded-xl text-[#1A2E4A] placeholder-[#B0C8E0] text-sm focus:outline-none focus:border-[#1A5FA8] focus:bg-white focus:ring-2 focus:ring-[#1A5FA8]/10 transition-all";
+
 export function NewTenantView({ onBackToLogin }: NewTenantViewProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [email, setEmail] = useState('');
@@ -14,101 +16,163 @@ export function NewTenantView({ onBackToLogin }: NewTenantViewProps) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // ... (Logic handleCheckEmail dan handleActivateAccount tetap sama persis seperti sebelumnya) ...
   const handleCheckEmail = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true); setError(null);
+    setLoading(true);
+    setError(null);
     try {
-      const { data: user, error: fetchError } = await supabase.from('users').select('id, status_akun').eq('email', email).single();
+      const { data: user, error: fetchError } = await supabase
+        .from('users')
+        .select('id, status_akun')
+        .eq('email', email)
+        .single();
       if (fetchError || !user) throw new Error('Email tidak terdaftar.');
-      if (user.status_akun !== 'belum_aktif') throw new Error('Akun sudah aktif.');
+      if (user.status_akun !== 'belum_aktif') throw new Error('Akun sudah aktif. Silakan login langsung.');
       setStep(2);
-    } catch (err: any) { setError(err.message); } finally { setLoading(false); }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleActivateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) { setError('Password tidak cocok.'); return; }
-    setLoading(true); setError(null);
+    if (password !== confirmPassword) {
+      setError('Password dan konfirmasi password tidak cocok.');
+      return;
+    }
+    if (password.length < 8) {
+      setError('Password minimal 8 karakter.');
+      return;
+    }
+    setLoading(true);
+    setError(null);
     try {
       const { error: authError } = await supabase.auth.signUp({ email, password });
       if (authError) throw authError;
-      const { error: updateError } = await supabase.from('users').update({ status_akun: 'aktif', is_profile_complete: false }).eq('email', email);
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ status_akun: 'aktif', is_profile_complete: false })
+        .eq('email', email);
       if (updateError) throw updateError;
       setSuccess(true);
-      setTimeout(() => window.location.href = '/dashboard', 1500);
-    } catch (err: any) { setError(err.message); } finally { setLoading(false); }
+      setTimeout(() => (window.location.href = '/dashboard'), 1500);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="w-full">
-      {error && (
-        <div className="bg-red-500/20 border border-red-400/50 text-red-100 p-4 rounded-2xl mb-4 text-center text-sm backdrop-blur-sm">
-          {error}
+    <div>
+      <h2 className="text-xl font-bold text-[#0D2F5C] mb-1">
+        {step === 1 ? 'Verifikasi Email' : 'Buat Password'}
+      </h2>
+      <p className="text-sm text-[#7A93B5] mb-6">
+        {step === 1
+          ? 'Masukkan email yang sudah didaftarkan admin kost'
+          : 'Buat password baru untuk akunmu'}
+      </p>
+
+      {/* Step indicator */}
+      {!success && (
+        <div className="flex items-center gap-2 mb-6">
+          <div className={`h-1.5 flex-1 rounded-full transition-all ${step >= 1 ? 'bg-[#1A5FA8]' : 'bg-[#E3EEF9]'}`} />
+          <div className={`h-1.5 flex-1 rounded-full transition-all ${step >= 2 ? 'bg-[#1A5FA8]' : 'bg-[#E3EEF9]'}`} />
         </div>
       )}
 
+      {/* Error */}
+      {error && (
+        <div className="flex gap-2.5 bg-red-50 border-[1.5px] border-red-200 rounded-xl p-3.5 mb-4">
+          <svg className="flex-shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="7" stroke="#EF4444" strokeWidth="1.5" />
+            <path d="M8 5V8" stroke="#EF4444" strokeWidth="1.5" strokeLinecap="round" />
+            <circle cx="8" cy="11" r="0.8" fill="#EF4444" />
+          </svg>
+          <p className="text-xs text-red-600 leading-relaxed">{error}</p>
+        </div>
+      )}
+
+      {/* Success */}
       {success ? (
-        <div className="bg-emerald-500/20 border border-emerald-400/50 text-emerald-100 p-6 rounded-3xl text-center backdrop-blur-sm shadow-[0_0_30px_rgba(16,185,129,0.2)]">
-          <div className="text-4xl mb-2">🎉</div>
-          <p className="font-bold text-lg tracking-wide uppercase">Aktivasi Berhasil</p>
-          <p className="text-sm mt-1 opacity-80">Mengarahkan ke dashboard...</p>
+        <div className="bg-emerald-50 border-[1.5px] border-emerald-200 rounded-2xl p-6 text-center">
+          <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12L10 17L19 7" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <p className="font-bold text-emerald-800 text-base">Aktivasi Berhasil!</p>
+          <p className="text-xs text-emerald-600 mt-1">Mengarahkan ke dashboard...</p>
         </div>
       ) : (
         <form onSubmit={step === 1 ? handleCheckEmail : handleActivateAccount} className="space-y-4">
-          
           {step === 1 ? (
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-6 py-4 bg-white/10 border border-white/30 rounded-full text-white placeholder-white/60 focus:bg-white/20 focus:border-white focus:outline-none transition-all"
-              placeholder="Masukkan Email Kamu"
-              required
-            />
+            <div>
+              <label className="block text-[11px] font-semibold text-[#3A5F8A] uppercase tracking-wide mb-1.5">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={inputClass}
+                placeholder="Email yang didaftarkan admin"
+                required
+                autoComplete="email"
+              />
+            </div>
           ) : (
             <>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-6 py-4 bg-white/10 border border-white/30 rounded-full text-white placeholder-white/60 focus:bg-white/20 focus:border-white focus:outline-none transition-all"
-                placeholder="Buat Password Baru"
-                required
-              />
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-6 py-4 bg-white/10 border border-white/30 rounded-full text-white placeholder-white/60 focus:bg-white/20 focus:border-white focus:outline-none transition-all"
-                placeholder="Ulangi Password"
-                required
-              />
+              <div>
+                <label className="block text-[11px] font-semibold text-[#3A5F8A] uppercase tracking-wide mb-1.5">Password Baru</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={inputClass}
+                  placeholder="Min. 8 karakter"
+                  required
+                  autoComplete="new-password"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-[#3A5F8A] uppercase tracking-wide mb-1.5">Konfirmasi Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className={inputClass}
+                  placeholder="Ulangi password"
+                  required
+                  autoComplete="new-password"
+                />
+              </div>
             </>
           )}
-          
+
           <button
             type="submit"
             disabled={loading}
-            className={`w-full py-4 rounded-full text-sm font-extrabold tracking-wider uppercase transition-all shadow-[0_4px_20px_rgba(0,0,0,0.2)] ${
-              step === 1 
-                ? 'bg-[#00D4FF] hover:bg-[#00B8E6] text-[#041533]' 
-                : 'bg-emerald-400 hover:bg-emerald-500 text-[#041533]'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            className={`w-full py-3.5 rounded-2xl text-sm font-bold tracking-wide transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] ${
+              step === 2
+                ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                : 'bg-[#1A5FA8] hover:bg-[#154D8A] text-white'
+            }`}
           >
-            {loading ? 'Processing...' : step === 1 ? 'Cek Akun' : 'Aktifkan'}
+            {loading ? 'Memproses...' : step === 1 ? 'Cek Akun' : 'Aktifkan Akun'}
           </button>
         </form>
       )}
 
-      <div className="mt-8 text-center">
+      {!success && (
         <button
           onClick={onBackToLogin}
-          className="text-sm text-white/60 hover:text-white transition uppercase tracking-widest font-semibold"
+          className="block w-full text-center text-sm text-[#1A5FA8] font-medium mt-5 cursor-pointer bg-transparent border-0 hover:text-[#154D8A] transition-colors"
         >
           ← Kembali ke Login
         </button>
-      </div>
+      )}
     </div>
   );
 }

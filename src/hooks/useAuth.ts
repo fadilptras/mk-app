@@ -87,7 +87,7 @@ export const useAuth = () => {
         if (profile?.is_profile_complete === false) {
             navigate('/profile/edit'); // Arahkan ke form lengkapi data
         } else {
-            navigate(profile?.role === 'admin' ? '/admin/dashboard' : '/dashboard');
+            navigate(profile?.role === 'admin' ? '/admin' : '/dashboard');
         }
         } catch (err: any) {
         setError(err.message);

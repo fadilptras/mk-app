@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function PenghuniDashboardView() {
     return (
         <div className="p-6 pb-20 bg-slate-50 min-h-full">

@@ -1,4 +1,3 @@
-// src/pages/auth/AuthPage.tsx
 import { useState } from 'react';
 import AuthLayout from '../../components/auth/AuthLayout';
 import LoginView from '../../components/auth/LoginView';
@@ -14,7 +13,6 @@ export default function AuthPage() {
     <AuthLayout>
       {currentView === 'login' && (
         <LoginView
-          // HAPUS baris onLogin di sini, agar LoginView murni menggunakan useAuth
           onForgot={() => setCurrentView('forgot-password')}
           onNewPenghuni={() => setCurrentView('new-penghuni')}
         />

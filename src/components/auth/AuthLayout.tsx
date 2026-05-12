@@ -2,24 +2,33 @@ import React from 'react';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    // Background dengan sentuhan warna pastel tipis
-    <div className="flex flex-col min-h-full bg-violet-50 p-6 relative overflow-hidden">
+    <div className="flex-1 flex flex-col bg-violet-50 p-6 relative overflow-hidden">
       
-      {/* Dekorasi aksen pastel di pojok layar untuk estetika */}
-      <div className="absolute top-0 right-0 w-40 h-40 bg-fuchsia-200 rounded-bl-full mix-blend-multiply opacity-40"></div>
-      <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-cyan-200 rounded-tr-full mix-blend-multiply opacity-40"></div>
+      {/* Dekorasi aksen pastel */}
+      <div className="absolute top-0 right-0 w-40 h-40 bg-blue-100 rounded-bl-full mix-blend-multiply opacity-40"></div>
+      <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-cyan-100 rounded-tr-full mix-blend-multiply opacity-40"></div>
 
-      {/* Bagian Header / Logo Utama */}
+      {/* Header / Logo Utama */}
       <div className="flex flex-col items-center justify-center mt-12 mb-8 relative z-10">
-        <div className="w-24 h-24 bg-violet-500 rounded-[2rem] rotate-3 flex items-center justify-center mb-6 shadow-[8px_8px_0px_#c084fc] transition-transform hover:rotate-0">
-          <span className="text-4xl text-white font-black italic">MK</span>
+        
+        {/* Logo MK dengan warna Biru Jelas (Blue-600) */}
+        <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-400 rounded-2xl flex items-center justify-center mb-5 shadow-lg shadow-blue-200">
+          <span className="text-3xl text-white font-black tracking-wider">MK</span>
         </div>
-        <h1 className="text-3xl font-black text-slate-800 tracking-tight">Mutiara Kost</h1>
-        <p className="text-slate-500 font-bold mt-1">Manajemen Kost Modern</p>
+        
+        {/* Teks Mutiara Kost dengan gradasi Biru Cerah */}
+        <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-500 tracking-wider uppercase drop-shadow-sm text-center">
+          Mutiara Kost
+        </h1>
+        <div className="flex items-center gap-3 mt-3">
+          <div className="h-[2px] w-8 bg-gradient-to-r from-transparent to-blue-400 rounded-full"></div>
+          <p className="text-blue-500 font-bold text-[10px] uppercase tracking-[0.2em]">Manajemen Modern</p>
+          <div className="h-[2px] w-8 bg-gradient-to-l from-transparent to-blue-400 rounded-full"></div>
+        </div>
       </div>
 
-      {/* Area Tengah Tempat Form Berada (Login/Forgot/Register) */}
-      <div className="flex-1 w-full z-10 flex flex-col justify-center">
+      {/* Area Form */}
+      <div className="flex-1 w-full z-10 flex flex-col justify-center relative">
         {children}
       </div>
       

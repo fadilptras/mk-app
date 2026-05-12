@@ -21,7 +21,7 @@ export default function AuthPage() {
         <ForgotPasswordView onBack={() => setCurrentView('login')} />
       )}
       {currentView === 'new-penghuni' && (
-        <NewPenghuniView />
+        <NewPenghuniView onBack={() => setCurrentView('login')} />
       )}
     </AuthLayout>
   );

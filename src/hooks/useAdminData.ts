@@ -3,24 +3,57 @@ import { supabase } from '../lib/supabase';
 
 export function useAdminData() {
   const [penghuni, setPenghuni] = useState<any[]>([]);
+  const [rooms, setRooms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchPenghuni = async () => {
-    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('*') // Mengambil semua kolom
+        .select('*')
         .eq('role', 'penghuni')
         .order('created_at', { ascending: false });
-
       if (error) throw error;
       setPenghuni(data || []);
     } catch (err) {
       console.error('Error fetching residents:', err);
+    }
+  };
+
+  const fetchRooms = async () => {
+    try {
+      // MENGGUNAKAN TABEL 'kamar' YANG SUDAH ADA
+      const { data, error } = await supabase
+        .from('kamar') 
+        .select('*')
+        .order('nomor_kamar', { ascending: true });
+      if (error) throw error;
+      setRooms(data || []);
+    } catch (err) {
+      console.error('Error fetching rooms:', err);
+    }
+  };
+
+  const addRoom = async (nomorKamar: string, tipeKamar: string, harga: number) => {
+    setIsSubmitting(true);
+    try {
+      // INSERT KE TABEL 'kamar' YANG SUDAH ADA
+      const { error } = await supabase
+        .from('kamar')
+        .insert([{ 
+            nomor_kamar: nomorKamar, 
+            tipe: tipeKamar, 
+            harga: harga,
+            status: 'Tersedia' // Asumsi default status
+        }]);
+      if (error) throw error;
+      await fetchRooms();
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, message: err.message };
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -28,14 +61,12 @@ export function useAdminData() {
     nama_lengkap: string;
     email: string;
     role: string;
-    kamar: string;
+    kamar_id: string; // Asumsi menggunakan UUID kamar
     tanggal_masuk: string;
   }) => {
     setIsSubmitting(true);
     try {
-      // Default password sementara
       const defaultPassword = 'Mutiara123'; 
-
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: payload.email,
         password: defaultPassword,
@@ -44,19 +75,20 @@ export function useAdminData() {
       if (authError) throw authError;
 
       if (authData.user) {
-        // Insert data ke tabel users
         const { error: dbError } = await supabase.from('users').insert([{
           id: authData.user.id,
           email: payload.email,
           nama_lengkap: payload.nama_lengkap,
           role: payload.role,
-          kamar: payload.kamar,
+          kamar_id: payload.kamar_id, // Menyimpan ID Kamar
           tanggal_masuk: payload.tanggal_masuk,
-          // PERUBAHAN PENTING: Dibuat false agar penghuni wajib melengkapi data KTP dll
           is_profile_complete: false 
         }]);
         
         if (dbError) throw dbError;
+
+        // Opsi: Update status kamar menjadi 'Terisi'
+        // await supabase.from('kamar').update({ status: 'Terisi' }).eq('id', payload.kamar_id);
       }
 
       await fetchPenghuni();
@@ -69,8 +101,13 @@ export function useAdminData() {
   };
 
   useEffect(() => {
-    fetchPenghuni();
+    const loadAllData = async () => {
+      setLoading(true);
+      await Promise.all([fetchPenghuni(), fetchRooms()]);
+      setLoading(false);
+    };
+    loadAllData();
   }, []);
 
-  return { penghuni, loading, isSubmitting, createAccount };
+  return { penghuni, rooms, loading, isSubmitting, createAccount, addRoom };
 }

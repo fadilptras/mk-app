@@ -123,9 +123,12 @@ export default function LaporView() {
   const getStatusBadge = (status: string) => {
     switch (status.toUpperCase()) {
       case 'PROCESSING':
+      case 'IN_PROGRESS':
         return <span className="text-[9px] font-black bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-md uppercase tracking-wider">Diproses</span>;
       case 'RESOLVED':
         return <span className="text-[9px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md uppercase tracking-wider">Selesai</span>;
+      case 'REJECTED':
+        return <span className="text-[9px] font-black bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-md uppercase tracking-wider">Ditolak</span>;
       default:
         return <span className="text-[9px] font-black bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-md uppercase tracking-wider">Menunggu</span>;
     }
@@ -137,8 +140,10 @@ export default function LaporView() {
         
         {/* Header Biru Premium */}
         <div className="bg-indigo-600 px-5 py-4 flex items-center gap-4 sticky top-0 z-20 shadow-md">
+          {/* Diperbaiki: Ditambahkan aria-label */}
           <button 
             onClick={() => navigate('/dashboard')} 
+            aria-label="Kembali ke Dashboard"
             className="p-2 bg-white/10 hover:bg-white/20 active:scale-95 transition-all rounded-full text-white"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -220,11 +225,14 @@ export default function LaporView() {
 
                 <form onSubmit={handleSubmit} className="space-y-5 mt-2">
                   <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                    {/* Diperbaiki: Ditambahkan htmlFor */}
+                    <label htmlFor="kategori_laporan" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
                       Pilih Kategori Masalah
                     </label>
                     <div className="relative">
+                      {/* Diperbaiki: Ditambahkan id */}
                       <select
+                        id="kategori_laporan"
                         className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-black text-gray-800 tracking-tight focus:border-indigo-400 outline-none appearance-none cursor-pointer"
                         value={formData.kategori}
                         onChange={(e) => setFormData({ ...formData, kategori: e.target.value })}
@@ -244,10 +252,13 @@ export default function LaporView() {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                    {/* Diperbaiki: Ditambahkan htmlFor */}
+                    <label htmlFor="deskripsi_laporan" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
                       Deskripsi Kendala secara Detail
                     </label>
+                    {/* Diperbaiki: Ditambahkan id */}
                     <textarea
+                      id="deskripsi_laporan"
                       required
                       rows={4}
                       placeholder="Contoh: Lampu utama kamar mandi berkedip terus menerus lalu mati sejak tadi pagi..."

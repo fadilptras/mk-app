@@ -2,112 +2,164 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 export function useAdminData() {
-  const [penghuni, setPenghuni] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
+  const [penghuni, setPenghuni] = useState<any[]>([]);
+  const [wifiSettings, setWifiSettings] = useState<any>(null);
+  const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchPenghuni = async () => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('role', 'penghuni')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      setPenghuni(data || []);
-    } catch (err) {
-      console.error('Error fetching residents:', err);
-    }
-  };
+      // 1. Fetch Kamar
+      const { data: roomsData, error: roomsError } = await supabase.from('rooms').select('*').order('room_number', { ascending: true });
+      if (roomsError) console.error('Error rooms:', roomsError.message);
+      else setRooms(roomsData || []);
 
-  const fetchRooms = async () => {
-    try {
-      // MENGGUNAKAN TABEL 'kamar' YANG SUDAH ADA
-      const { data, error } = await supabase
-        .from('kamar') 
-        .select('*')
-        .order('nomor_kamar', { ascending: true });
-      if (error) throw error;
-      setRooms(data || []);
-    } catch (err) {
-      console.error('Error fetching rooms:', err);
-    }
-  };
+      // 2. Fetch Users
+      const { data: usersData, error: usersError } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+      if (usersError) console.error('Error users:', usersError.message);
+      else setPenghuni(usersData || []);
 
-  const addRoom = async (nomorKamar: string, tipeKamar: string, harga: number) => {
-    setIsSubmitting(true);
-    try {
-      // INSERT KE TABEL 'kamar' YANG SUDAH ADA
-      const { error } = await supabase
-        .from('kamar')
-        .insert([{ 
-            nomor_kamar: nomorKamar, 
-            tipe: tipeKamar, 
-            harga: harga,
-            status: 'Tersedia' // Asumsi default status
-        }]);
-      if (error) throw error;
-      await fetchRooms();
-      return { success: true };
-    } catch (err: any) {
-      return { success: false, message: err.message };
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+      // 3. Fetch WiFi (Pakai maybeSingle agar aman walau tabel kosong)
+      const { data: wifiData, error: wifiError } = await supabase.from('wifi_networks').select('*').eq('is_active', true).order('created_at', { ascending: false }).limit(1).maybeSingle();
+      if (wifiError) console.error('Error wifi:', wifiError.message);
+      else if (wifiData) setWifiSettings(wifiData);
 
-  const createAccount = async (payload: {
-    nama_lengkap: string;
-    email: string;
-    role: string;
-    kamar_id: string; // Asumsi menggunakan UUID kamar
-    tanggal_masuk: string;
-  }) => {
-    setIsSubmitting(true);
-    try {
-      const defaultPassword = 'Mutiara123'; 
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: payload.email,
-        password: defaultPassword,
-      });
+      // 4. Fetch Laporan (Dengan Radar Console Log)
+      const { data: reportsData, error: reportsError } = await supabase.from('reports').select('*').order('created_at', { ascending: false });
+      
+      // Buka Inspect > Console di Browser untuk melihat ini!
+      console.log('--- DEBUG LAPORAN ---');
+      console.log('Error dari Supabase:', reportsError?.message || 'Aman tidak ada error DB');
+      console.log('Data yang ditarik:', reportsData);
+      console.log('---------------------');
 
-      if (authError) throw authError;
-
-      if (authData.user) {
-        const { error: dbError } = await supabase.from('users').insert([{
-          id: authData.user.id,
-          email: payload.email,
-          nama_lengkap: payload.nama_lengkap,
-          role: payload.role,
-          kamar_id: payload.kamar_id, // Menyimpan ID Kamar
-          tanggal_masuk: payload.tanggal_masuk,
-          is_profile_complete: false 
-        }]);
-        
-        if (dbError) throw dbError;
-
-        // Opsi: Update status kamar menjadi 'Terisi'
-        // await supabase.from('kamar').update({ status: 'Terisi' }).eq('id', payload.kamar_id);
+      if (reportsError) {
+        console.error('Gagal fetch laporan:', reportsError.message);
+      } else {
+        setReports(reportsData || []);
       }
 
-      await fetchPenghuni();
-      return { success: true };
-    } catch (err: any) {
-      return { success: false, message: err.message };
+    } catch (error: any) {
+      console.error('Fatal error fetching admin data:', error.message);
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    const loadAllData = async () => {
-      setLoading(true);
-      await Promise.all([fetchPenghuni(), fetchRooms()]);
-      setLoading(false);
-    };
-    loadAllData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
-  return { penghuni, rooms, loading, isSubmitting, createAccount, addRoom };
+  // --- CRUD KAMAR ---
+  const addRoom = async (nomor: string, meterNumber: string, meterName: string) => {
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.from('rooms').insert([{ room_number: nomor, status: 'AVAILABLE', meter_number: meterNumber || null, meter_name: meterName || null }]);
+      if (error) throw error;
+      await fetchData();
+      return { success: true };
+    } catch (error: any) { return { success: false, message: error.message }; } finally { setIsSubmitting(false); }
+  };
+
+  const updateRoom = async (id: string, data: any) => {
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.from('rooms').update(data).eq('id', id);
+      if (error) throw error;
+      await fetchData();
+      return { success: true };
+    } catch (error: any) { return { success: false, message: error.message }; } finally { setIsSubmitting(false); }
+  };
+
+  const deleteRoom = async (id: string) => {
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.from('rooms').delete().eq('id', id);
+      if (error) throw error;
+      await fetchData();
+      return { success: true };
+    } catch (error: any) { return { success: false, message: error.message }; } finally { setIsSubmitting(false); }
+  };
+
+  // --- CRUD PENGHUNI ---
+  const createAccount = async (formData: any) => {
+    setIsSubmitting(true);
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signUp({ email: formData.email, password: 'Mutiara123', options: { data: { role: formData.role } } });
+      if (authError) throw authError;
+
+      if (authData?.user) {
+        const { error: userError } = await supabase.from('users').insert([{
+          id: authData.user.id, email: formData.email, role: formData.role, room_id: formData.kamar_id || null,
+          tanggal_masuk: formData.tanggal_masuk || null, tanggal_tagihan: formData.tanggal_tagihan || null,
+          biaya_sewa: formData.biaya_sewa ? Number(formData.biaya_sewa) : null, biaya_deposit: formData.biaya_deposit ? Number(formData.biaya_deposit) : null,
+          no_rek_pembayaran: formData.no_rek_pembayaran || null, nama_rek_pembayaran: formData.nama_rek_pembayaran || null, is_profile_complete: false
+        }]);
+        if (userError) throw userError;
+      }
+      await fetchData();
+      return { success: true };
+    } catch (error: any) { return { success: false, message: error.message }; } finally { setIsSubmitting(false); }
+  };
+
+  const updateUser = async (id: string, data: any) => {
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.from('users').update(data).eq('id', id);
+      if (error) throw error;
+      await fetchData();
+      return { success: true };
+    } catch (error: any) { return { success: false, message: error.message }; } finally { setIsSubmitting(false); }
+  };
+
+  const deleteUser = async (id: string) => {
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.from('users').delete().eq('id', id);
+      if (error) throw error;
+      await fetchData();
+      return { success: true };
+    } catch (error: any) { return { success: false, message: error.message }; } finally { setIsSubmitting(false); }
+  };
+
+  // --- LAINNYA ---
+  const updateRoomElectricity = async (roomId: string, token: string) => {
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.from('rooms').update({ meter_number: token }).eq('id', roomId);
+      if (error) throw error;
+      await fetchData();
+      return { success: true };
+    } catch (error: any) { return { success: false, message: error.message }; } finally { setIsSubmitting(false); }
+  };
+
+  const updateWifiSettings = async (ssid: string, password: string) => {
+    setIsSubmitting(true);
+    try {
+      await supabase.from('wifi_networks').update({ is_active: false }).eq('is_active', true);
+      const { error } = await supabase.from('wifi_networks').insert([{ ssid, password, is_active: true }]);
+      if (error) throw error;
+      await fetchData();
+      return { success: true };
+    } catch (error: any) { return { success: false, message: error.message }; } finally { setIsSubmitting(false); }
+  };
+
+  // --- UPDATE LAPORAN ---
+  const updateReportStatus = async (id: string, status: string) => {
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.from('reports').update({ status }).eq('id', id);
+      if (error) throw error;
+      await fetchData();
+      return { success: true };
+    } catch (error: any) { return { success: false, message: error.message }; } finally { setIsSubmitting(false); }
+  };
+
+  return {
+    rooms, penghuni, wifiSettings, reports, loading, isSubmitting,
+    addRoom, updateRoom, deleteRoom,
+    createAccount, updateUser, deleteUser,
+    updateRoomElectricity, updateWifiSettings, updateReportStatus, refreshData: fetchData
+  };
 }

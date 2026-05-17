@@ -19,6 +19,7 @@ import KelolaKamarView from './pages/admin/KelolaKamarView';
 import KelolaPenghuniView from './pages/admin/KelolaPenghuniView';
 import SetListrikView from './pages/admin/SetListrikView';
 import SetWifiView from './pages/admin/SetWifiView';
+import KelolaLaporanView from './pages/admin/KelolaLaporanView';
 
 function App() {
   return (
@@ -52,6 +53,7 @@ function App() {
             <Route path="penghuni" element={<KelolaPenghuniView />} />
             <Route path="listrik" element={<SetListrikView />} />
             <Route path="wifi" element={<SetWifiView />} />
+            <Route path="laporan" element={<KelolaLaporanView />} />
           </Route>
         </Routes>
       </MobileLayout>

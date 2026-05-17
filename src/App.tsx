@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import MobileLayout from './components/layout/MobileLayout';
 import AuthPage from "./pages/auth/AuthPage";
 import ProfileEditView from "./pages/profile/ProfileEditView";
-import AdminDashboardView from "./pages/admin/AdminDashboardView";
 import PenghuniDashboardView from "./pages/penghuni/PenghuniDashboardView";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
@@ -13,6 +12,13 @@ import ListrikView from './pages/penghuni/ListrikView';
 import LaporView from './pages/penghuni/LaporView';
 import NotificationView from './pages/penghuni/NotificationView';
 import PeraturanView from './pages/penghuni/PeraturanView';
+
+import AdminLayout from './components/layout/AdminLayout';
+import AdminDashboardView from './pages/admin/AdminDashboardView';
+import KelolaKamarView from './pages/admin/KelolaKamarView';
+import KelolaPenghuniView from './pages/admin/KelolaPenghuniView';
+import SetListrikView from './pages/admin/SetListrikView';
+import SetWifiView from './pages/admin/SetWifiView';
 
 function App() {
   return (
@@ -38,6 +44,15 @@ function App() {
           </Route>
 
           <Route path="*" element={<Navigate to="/auth" replace />} />
+
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboardView />} />
+            <Route path="dashboard" element={<AdminDashboardView />} />
+            <Route path="kamar" element={<KelolaKamarView />} />
+            <Route path="penghuni" element={<KelolaPenghuniView />} />
+            <Route path="listrik" element={<SetListrikView />} />
+            <Route path="wifi" element={<SetWifiView />} />
+          </Route>
         </Routes>
       </MobileLayout>
     </BrowserRouter>

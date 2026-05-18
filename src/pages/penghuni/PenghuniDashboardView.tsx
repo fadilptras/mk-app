@@ -1,10 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfileCheck } from '../../hooks/useProfileCheck';
+import AnnouncementSection from '../../components/penghuni/AnnouncementSection';
 
 export default function PenghuniDashboardView() {
   const navigate = useNavigate();
-  const { loading, user, isProfileComplete, profileData } = useProfileCheck();
+  const { loading, user, profileData } = useProfileCheck();
 
   if (loading) {
     return (
@@ -52,22 +53,9 @@ export default function PenghuniDashboardView() {
         </div>
 
         <div className="px-5 -mt-10 relative z-20 space-y-5">
-          {!isProfileComplete && (
-            <div className="bg-gradient-to-r from-orange-500 to-amber-500 p-4 rounded-2xl shadow-lg flex items-center gap-4 border border-orange-400">
-              <div className="bg-white/20 p-2.5 rounded-xl flex-shrink-0 backdrop-blur-sm"><svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg></div>
-              <div className="flex-1"><p className="text-xs font-black text-white tracking-wide">Aktivasi Akun!</p><p className="text-[10px] font-medium text-orange-100 mt-0.5">Lengkapi data diri Anda segera.</p></div>
-              <button onClick={() => navigate('/profile/edit')} className="bg-white text-orange-600 text-[10px] font-black px-4 py-2 rounded-lg shadow-sm">ISI DATA</button>
-            </div>
-          )}
-
-          <div className="bg-white p-4 rounded-[24px] shadow-sm border border-gray-100 relative overflow-hidden flex flex-col justify-center">
-            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-blue-400 to-indigo-500"></div>
-            <div className="flex items-center justify-between mb-2 pl-2">
-              <div className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md text-[10px] font-black flex items-center gap-1.5 uppercase">PENGUMUMAN</div>
-              <span className="text-[10px] text-gray-400 font-bold uppercase">HARI INI</span>
-            </div>
-            <div className="pl-2"><h3 className="font-bold text-gray-800 text-sm mb-1">Maintenance WiFi Kost</h3><p className="text-[11px] text-gray-500 leading-snug line-clamp-2">Pemeliharaan jaringan internet jam 23.00 WIB malam ini.</p></div>
-          </div>
+          
+          {/* SECTION PENGUMUMAN */}
+          <AnnouncementSection />
 
           {/* GRID 4 FITUR */}
           <div className="grid grid-cols-4 gap-3">
@@ -84,7 +72,7 @@ export default function PenghuniDashboardView() {
             ))}
           </div>
 
-          {/* BANNER PERATURAN KOST (BARU!) */}
+          {/* BANNER PERATURAN KOST */}
           <button 
             onClick={() => navigate('/peraturan')}
             className="w-full bg-indigo-900 rounded-[24px] p-4 flex items-center justify-between shadow-lg relative overflow-hidden group"
@@ -126,7 +114,21 @@ export default function PenghuniDashboardView() {
                 { title: 'Sewa Kamar April', date: '05 Mei 2026', amount: 'Rp 1.500.000', status: 'Lunas', iconBg: 'bg-emerald-100', iconColor: 'text-emerald-600', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
                 { title: 'Pembelian Token', date: '02 Mei 2026', amount: 'Rp 100.000', status: 'Lunas', iconBg: 'bg-emerald-100', iconColor: 'text-emerald-600', icon: 'M13 10V3L4 14h7v7l9-11h-7z' }
               ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-2xl border border-transparent transition-colors hover:bg-gray-50"><div className="flex items-center gap-3.5"><div className={`w-11 h-11 rounded-xl flex items-center justify-center ${item.iconBg} ${item.iconColor}`}><svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d={item.icon} /></svg></div><div><p className="text-[11px] font-black text-gray-800 uppercase">{item.title}</p><p className="text-[10px] text-gray-400 font-bold uppercase">{item.date}</p></div></div><div className="text-right"><p className="text-xs font-black text-gray-800">{item.amount}</p><p className="text-[9px] font-black uppercase text-emerald-500 tracking-wider mt-0.5">{item.status}</p></div></div>
+                <div key={i} className="flex items-center justify-between p-3 rounded-2xl border border-transparent transition-colors hover:bg-gray-50">
+                  <div className="flex items-center gap-3.5">
+                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${item.iconBg} ${item.iconColor}`}>
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d={item.icon} /></svg>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-black text-gray-800 uppercase">{item.title}</p>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase">{item.date}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-black text-gray-800">{item.amount}</p>
+                    <p className="text-[9px] font-black uppercase text-emerald-500 tracking-wider mt-0.5">{item.status}</p>
+                  </div>
+                </div>
               ))}
             </div>
           </div>

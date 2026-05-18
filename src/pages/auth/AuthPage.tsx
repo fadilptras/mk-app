@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import AuthLayout from '../../components/auth/AuthLayout';
-import LoginView from '../../components/auth/LoginView';
-import ForgotPasswordView from '../../components/auth/ForgotPasswordView';
-import NewPenghuniView from "../../components/auth/NewPenghuniView";
+// Import diperbarui ke direktori yang sama (pages/auth)
+import LoginView from './LoginView';
+import ForgotPasswordView from './ForgotPasswordView';
+import NewPenghuniView from './NewPenghuniView';
 
 type AuthView = 'login' | 'forgot-password' | 'new-penghuni';
 

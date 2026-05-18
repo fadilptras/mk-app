@@ -1,214 +1,399 @@
-import React, { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
+
+interface ProfileState {
+  nama_lengkap: string;
+  nik: string;
+  no_whatsapp: string;
+  jenis_kelamin: string;
+  pekerjaan_instansi: string;
+  tempat_lahir: string;
+  tanggal_lahir: string;
+  alamat_asal: string;
+  agama: string;
+  status_pernikahan: string;
+  darurat_nama: string;
+  darurat_hp: string;
+  darurat_whatsapp: string;
+  darurat_hubungan: string;
+  darurat_alamat: string;
+  foto_diri: string;
+  foto_ktp: string;
+}
 
 export default function ProfileEditView() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // State untuk file upload & preview
+  const [fotoDiriFile, setFotoDiriFile] = useState<File | null>(null);
   const [fotoKtpFile, setFotoKtpFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  
-  // State sesuai persis dengan kolom di tabel user_profiles
-  const [formData, setFormData] = useState({
-    nama_lengkap: '',
-    nik: '',
-    no_whatsapp: '',
-    jenis_kelamin: 'L',
-    pekerjaan_instansi: '',
-    darurat_nama: '',
-    darurat_hp: '',
-    darurat_hubungan: ''
+  const [fotoDiriPreview, setFotoDiriPreview] = useState<string | null>(null);
+  const [fotoKtpPreview, setFotoKtpPreview] = useState<string | null>(null);
+
+  // Referensi input file tersembunyi
+  const fotoDiriRef = useRef<HTMLInputElement>(null);
+  const fotoKtpRef = useRef<HTMLInputElement>(null);
+
+  const [form, setForm] = useState<ProfileState>({
+    nama_lengkap: '', nik: '', no_whatsapp: '', jenis_kelamin: 'L',
+    pekerjaan_instansi: '', tempat_lahir: '', tanggal_lahir: '', alamat_asal: '',
+    agama: '', status_pernikahan: '', darurat_nama: '', darurat_hp: '',
+    darurat_whatsapp: '', darurat_hubungan: '', darurat_alamat: '',
+    foto_diri: '', foto_ktp: '',
   });
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setFotoKtpFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        setLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+          navigate('/auth');
+          return;
+        }
+
+        setUserId(user.id);
+
+        // Menarik data yang sudah ada di database untuk mengisi form
+        const { data: profile, error } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (profile) {
+          setForm({
+            nama_lengkap: profile.nama_lengkap || '',
+            nik: profile.nik || '',
+            no_whatsapp: profile.no_whatsapp || '',
+            jenis_kelamin: profile.jenis_kelamin || 'L',
+            pekerjaan_instansi: profile.pekerjaan_instansi || '',
+            tempat_lahir: profile.tempat_lahir || '',
+            tanggal_lahir: profile.tanggal_lahir || '',
+            alamat_asal: profile.alamat_asal || '',
+            agama: profile.agama || '',
+            status_pernikahan: profile.status_pernikahan || '',
+            darurat_nama: profile.darurat_nama || '',
+            darurat_hp: profile.darurat_hp || '',
+            darurat_whatsapp: profile.darurat_whatsapp || '',
+            darurat_hubungan: profile.darurat_hubungan || '',
+            darurat_alamat: profile.darurat_alamat || '',
+            foto_diri: profile.foto_diri || '',
+            foto_ktp: profile.foto_ktp || '',
+          });
+
+          // Set preview jika foto sudah pernah diupload sebelumnya
+          if (profile.foto_diri) setFotoDiriPreview(profile.foto_diri);
+          if (profile.foto_ktp) setFotoKtpPreview(profile.foto_ktp);
+        }
+      } catch (error) {
+        console.error('Gagal memuat profil:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfileData();
+  }, [navigate]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'diri' | 'ktp') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validasi ukuran (maksimal 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Ukuran file maksimal 5MB');
+      return;
     }
+
+    const previewUrl = URL.createObjectURL(file);
+
+    if (type === 'diri') {
+      setFotoDiriFile(file);
+      setFotoDiriPreview(previewUrl);
+    } else {
+      setFotoKtpFile(file);
+      setFotoKtpPreview(previewUrl);
+    }
+  };
+
+  // Fungsi helper untuk upload gambar ke Supabase Storage
+  const uploadImage = async (file: File, folder: string): Promise<string> => {
+    if (!userId) throw new Error("User ID tidak ditemukan");
+    
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}-${Date.now()}.${fileExt}`;
+    const filePath = `${folder}/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('berkas_penghuni') // Asumsi nama bucket kamu
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage
+      .from('berkas_penghuni')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    
+    if (!userId) return;
+
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Sesi tidak ditemukan. Silakan login kembali.');
+      setSaving(true);
+      setStatusMessage({ type: 'success', text: 'Sedang menyimpan data...' });
 
-      let fotoKtpUrl = null;
+      let finalFotoDiriUrl = form.foto_diri;
+      let finalFotoKtpUrl = form.foto_ktp;
 
-      // 1. Upload Foto KTP ke Storage (Opsional berdasarkan skema, tapi kita buat wajib di form ini agar aman)
-      if (fotoKtpFile) {
-        const fileExt = fotoKtpFile.name.split('.').pop();
-        const filePath = `identitas_ktp/${user.id}-${Date.now()}.${fileExt}`; // Penamaan file aman
-        
-        const { error: uploadError } = await supabase.storage
-          .from('berkas_penghuni')
-          .upload(filePath, fotoKtpFile);
-          
-        if (uploadError) throw uploadError;
-        
-        const { data } = supabase.storage.from('berkas_penghuni').getPublicUrl(filePath);
-        fotoKtpUrl = data.publicUrl;
+      // 1. Upload Foto Diri (Jika ada file baru yang dipilih)
+      if (fotoDiriFile) {
+        setStatusMessage({ type: 'success', text: 'Mengunggah foto profil...' });
+        finalFotoDiriUrl = await uploadImage(fotoDiriFile, 'identitas_diri');
       }
 
-      // 2. Insert ke tabel user_profiles
+      // 2. Upload Foto KTP (Jika ada file baru yang dipilih)
+      if (fotoKtpFile) {
+        setStatusMessage({ type: 'success', text: 'Mengunggah foto KTP...' });
+        finalFotoKtpUrl = await uploadImage(fotoKtpFile, 'identitas_ktp');
+      }
+
+      // 3. Simpan semua data ke tabel user_profiles
+      setStatusMessage({ type: 'success', text: 'Memperbarui profil...' });
+      const finalData = {
+        user_id: userId,
+        ...form,
+        foto_diri: finalFotoDiriUrl,
+        foto_ktp: finalFotoKtpUrl,
+        profile_completed: true,
+        updated_at: new Date().toISOString(),
+      };
+
       const { error: profileError } = await supabase
         .from('user_profiles')
-        .insert([{
-          user_id: user.id,
-          nama_lengkap: formData.nama_lengkap,
-          nik: formData.nik,
-          no_whatsapp: formData.no_whatsapp,
-          jenis_kelamin: formData.jenis_kelamin,
-          pekerjaan_instansi: formData.pekerjaan_instansi,
-          darurat_nama: formData.darurat_nama,
-          darurat_hp: formData.darurat_hp,
-          darurat_hubungan: formData.darurat_hubungan,
-          foto_ktp: fotoKtpUrl
-        }]);
+        .upsert(finalData, { onConflict: 'user_id' });
 
       if (profileError) throw profileError;
 
-      // 3. Update status di tabel users
-      const { error: updateError } = await supabase
+      // 4. Update status di tabel users
+      const { error: userError } = await supabase
         .from('users')
         .update({ is_profile_complete: true })
-        .eq('id', user.id);
+        .eq('id', userId);
 
-      if (updateError) throw updateError;
+      if (userError) throw userError;
 
-      // 4. Jika sukses semua, kembali ke dashboard
-      alert("Terima kasih! Profil berhasil diaktifkan.");
-      navigate('/dashboard', { replace: true }); // replace agar tidak bisa di-back ke form ini lagi
+      setStatusMessage({ type: 'success', text: '✅ Profil & Berkas berhasil diperbarui!' });
+      
+      setTimeout(() => navigate('/dashboard'), 1500);
 
-    } catch (err: any) {
-      console.error(err);
-      alert(`Terjadi kesalahan: ${err.message}`);
+    } catch (error: any) {
+      console.error('Gagal menyimpan profil:', error);
+      setStatusMessage({ type: 'error', text: `Gagal: ${error.message || 'Terjadi kesalahan'}` });
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F4F7FC]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex justify-center font-sans">
-      <div className="w-full max-w-md bg-white min-h-screen shadow-xl relative pb-24">
+    <div className="min-h-screen bg-[#FDFDFD] pb-24 font-sans text-gray-800">
+      <div className="max-w-md mx-auto relative min-h-screen bg-[#F8FAFC] shadow-inner">
         
-        <div className="bg-white px-6 py-5 border-b border-gray-100 sticky top-0 z-20 shadow-sm flex items-center gap-3">
-          <button onClick={() => navigate('/dashboard')} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100">
-             <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
-          </button>
-          <div>
-            <h1 className="text-lg font-black text-gray-800">Verifikasi Data Diri</h1>
-            <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest">Tahap Akhir Aktivasi</p>
+        {/* HEADER BAR */}
+        <div className="bg-gradient-to-br from-indigo-800 via-indigo-700 to-blue-700 pt-6 pb-12 px-6 rounded-b-[40px] shadow-lg relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl"></div>
+          <div className="flex items-center gap-4 relative z-10 text-white">
+            <button onClick={() => navigate('/dashboard')} className="bg-white/20 p-2.5 rounded-2xl backdrop-blur-md border border-white/30 shadow-lg active:scale-90 transition-all">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+            </button>
+            <div>
+              <h1 className="text-xl font-black tracking-tight uppercase">Data Diri Penghuni</h1>
+              <p className="text-[11px] text-indigo-200 font-bold uppercase tracking-wide">Lengkapi berkas hunian Mutiara Kost</p>
+            </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-8">
+        <form onSubmit={handleSubmit} className="px-5 -mt-6 relative z-20 space-y-6">
           
-          {/* Kelompok Input: Biodata */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-bold text-gray-800 border-b-2 border-indigo-100 pb-2 inline-block">1. Informasi Pribadi</h3>
+          {statusMessage && (
+            <div className={`p-4 rounded-2xl text-xs font-black uppercase border tracking-wider shadow-sm flex items-center gap-2 ${
+              statusMessage.type === 'success' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'
+            }`}>
+              {statusMessage.text}
+            </div>
+          )}
+
+          {/* SECTION 1: INFORMASI UTAMA */}
+          <div className="bg-white p-5 rounded-[28px] border border-gray-100 shadow-sm space-y-4">
+            <h3 className="font-black text-xs text-indigo-700 uppercase tracking-widest border-b pb-2">I. Informasi Pribadi</h3>
             
-            <div>
-              <label className="block text-xs font-bold text-gray-600 mb-1">Nama Lengkap (Sesuai KTP)</label>
-              <input type="text" required
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium"
-                onChange={(e) => setFormData({...formData, nama_lengkap: e.target.value})} />
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Nama Lengkap</label>
+              <input type="text" name="nama_lengkap" value={form.nama_lengkap} onChange={handleChange} required className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-indigo-500 transition-colors" placeholder="Masukkan nama lengkap" />
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-gray-600 mb-1">Nomor Induk Kependudukan (NIK)</label>
-              <input type="text" required maxLength={16}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium"
-                onChange={(e) => setFormData({...formData, nik: e.target.value})} />
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Nomor Induk Kependudukan (NIK)</label>
+              <input type="text" name="nik" value={form.nik} onChange={handleChange} required className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-indigo-500 transition-colors" placeholder="16 digit nomor NIK" />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-600 mb-1">Jenis Kelamin</label>
-                <select 
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none font-medium appearance-none"
-                  onChange={(e) => setFormData({...formData, jenis_kelamin: e.target.value})}>
-                  <option value="L">Laki-laki</option>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider">No. WhatsApp</label>
+                <input type="text" name="no_whatsapp" value={form.no_whatsapp} onChange={handleChange} required className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-indigo-500 transition-colors" placeholder="0812..." />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Jenis Kelamin</label>
+                <select name="jenis_kelamin" value={form.jenis_kelamin} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-indigo-500 transition-colors">
+                  <option value="L">Laki-Laki</option>
                   <option value="P">Perempuan</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-600 mb-1">No. WhatsApp</label>
-                <input type="tel" required
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium"
-                  onChange={(e) => setFormData({...formData, no_whatsapp: e.target.value})} />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Pekerjaan / Instansi</label>
+              <input type="text" name="pekerjaan_instansi" value={form.pekerjaan_instansi} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-indigo-500 transition-colors" placeholder="Mahasiswa / Nama Perusahaan" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Tempat Lahir</label>
+                <input type="text" name="tempat_lahir" value={form.tempat_lahir} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-indigo-500 transition-colors" placeholder="Kota Lahir" />
               </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Tanggal Lahir</label>
+                <input type="date" name="tanggal_lahir" value={form.tanggal_lahir} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-indigo-500 transition-colors" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Agama</label>
+                <input type="text" name="agama" value={form.agama} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-indigo-500 transition-colors" placeholder="Agama" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Status Pernikahan</label>
+                <input type="text" name="status_pernikahan" value={form.status_pernikahan} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-indigo-500 transition-colors" placeholder="Belum / Kawin" />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Alamat Asal (Sesuai KTP)</label>
+              <textarea name="alamat_asal" value={form.alamat_asal} onChange={handleChange} rows={2} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-indigo-500 transition-colors resize-none" placeholder="Alamat asal lengkap..." />
             </div>
           </div>
 
-          {/* Kelompok Input: Pekerjaan & Dokumen */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-bold text-gray-800 border-b-2 border-indigo-100 pb-2 inline-block">2. Pekerjaan & Dokumen</h3>
+          {/* SECTION 2: KONTAK DARURAT */}
+          <div className="bg-white p-5 rounded-[28px] border border-gray-100 shadow-sm space-y-4">
+            <h3 className="font-black text-xs text-rose-600 uppercase tracking-widest border-b pb-2">II. Kontak Darurat</h3>
             
-            <div>
-              <label className="block text-xs font-bold text-gray-600 mb-1">Instansi (Kampus/Perusahaan)</label>
-              <input type="text" required
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium"
-                onChange={(e) => setFormData({...formData, pekerjaan_instansi: e.target.value})} />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Nama Kontak</label>
+                <input type="text" name="darurat_nama" value={form.darurat_nama} onChange={handleChange} required className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-indigo-500 transition-colors" placeholder="Nama kerabat" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Hubungan</label>
+                <input type="text" name="darurat_hubungan" value={form.darurat_hubungan} onChange={handleChange} required className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-indigo-500 transition-colors" placeholder="Orang Tua / Saudara" />
+              </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-gray-600 mb-1">Unggah Foto Identitas (KTP)</label>
-              <div className="relative border-2 border-dashed border-gray-300 bg-gray-50 rounded-xl p-6 text-center hover:bg-indigo-50 hover:border-indigo-300 transition-all cursor-pointer">
-                <input type="file" accept="image/*" required className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={handleFileChange} />
-                {previewUrl ? (
-                  <img src={previewUrl} className="h-32 mx-auto rounded-lg shadow-sm" alt="Preview KTP" />
-                ) : (
-                  <div>
-                    <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-2 text-indigo-500">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
-                    </div>
-                    <p className="text-xs font-bold text-gray-500">Tap untuk memilih foto</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider">No. Handphone</label>
+                <input type="text" name="darurat_hp" value={form.darurat_hp} onChange={handleChange} required className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-indigo-500 transition-colors" placeholder="08..." />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider">WhatsApp Darurat</label>
+                <input type="text" name="darurat_whatsapp" value={form.darurat_whatsapp} onChange={handleChange} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-indigo-500 transition-colors" placeholder="08..." />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Alamat Darurat</label>
+              <textarea name="darurat_alamat" value={form.darurat_alamat} onChange={handleChange} rows={2} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:border-indigo-500 transition-colors resize-none" placeholder="Alamat lengkap penanggung jawab..." />
+            </div>
+          </div>
+
+          {/* SECTION 3: BERKAS & FOTO (Dipindah ke bawah) */}
+          <div className="bg-white p-5 rounded-[28px] border border-gray-100 shadow-sm space-y-5">
+            <h3 className="font-black text-xs text-amber-600 uppercase tracking-widest border-b pb-2">III. Berkas & Identitas Visual</h3>
+            
+            <div className="flex gap-4 items-center">
+              {/* FOTO PROFIL */}
+              <div className="flex flex-col items-center gap-2 w-1/3">
+                <div 
+                  onClick={() => fotoDiriRef.current?.click()}
+                  className="w-20 h-20 rounded-full border-2 border-dashed border-indigo-300 bg-indigo-50 flex flex-col items-center justify-center overflow-hidden cursor-pointer relative group"
+                >
+                  {fotoDiriPreview ? (
+                    <img src={fotoDiriPreview} alt="Preview Diri" className="w-full h-full object-cover group-hover:opacity-50 transition-opacity" />
+                  ) : (
+                    <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  )}
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-[10px] text-white font-bold">Ubah</span>
                   </div>
-                )}
+                </div>
+                <p className="text-[10px] font-black text-gray-500 uppercase text-center">Foto Diri</p>
+                <input type="file" ref={fotoDiriRef} onChange={(e) => handleFileChange(e, 'diri')} accept="image/*" className="hidden" />
+              </div>
+
+              {/* FOTO KTP */}
+              <div className="flex flex-col gap-2 w-2/3">
+                <div 
+                  onClick={() => fotoKtpRef.current?.click()}
+                  className="w-full h-20 rounded-xl border-2 border-dashed border-amber-300 bg-amber-50 flex flex-col items-center justify-center overflow-hidden cursor-pointer relative group"
+                >
+                  {fotoKtpPreview ? (
+                    <img src={fotoKtpPreview} alt="Preview KTP" className="w-full h-full object-cover group-hover:opacity-50 transition-opacity" />
+                  ) : (
+                    <div className="flex flex-col items-center">
+                      <svg className="w-6 h-6 text-amber-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" /></svg>
+                      <span className="text-[10px] font-bold text-amber-600 uppercase">Upload KTP</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-[10px] text-white font-bold">Ubah KTP</span>
+                  </div>
+                </div>
+                <input type="file" ref={fotoKtpRef} onChange={(e) => handleFileChange(e, 'ktp')} accept="image/*" className="hidden" />
               </div>
             </div>
           </div>
 
-          {/* Kelompok Input: Darurat */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-bold text-gray-800 border-b-2 border-indigo-100 pb-2 inline-block">3. Kontak Darurat</h3>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-600 mb-1">Nama Kontak</label>
-                <input type="text" required
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none font-medium"
-                  onChange={(e) => setFormData({...formData, darurat_nama: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-600 mb-1">Hubungan</label>
-                <input type="text" required placeholder="Cth: Orang Tua"
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none font-medium"
-                  onChange={(e) => setFormData({...formData, darurat_hubungan: e.target.value})} />
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-xs font-bold text-gray-600 mb-1">No. Handphone Darurat</label>
-              <input type="tel" required
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none font-medium"
-                onChange={(e) => setFormData({...formData, darurat_hp: e.target.value})} />
-            </div>
-          </div>
-
-          {/* Action Button Bottom */}
-          <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white p-4 border-t border-gray-100 z-30">
-            <button 
-              type="submit" disabled={loading}
-              className="w-full bg-indigo-600 text-white font-bold rounded-xl py-4 shadow-lg hover:bg-indigo-700 active:scale-95 transition-all flex justify-center items-center gap-2 disabled:opacity-50"
-            >
-              {loading ? 'MEMPROSES DATA...' : 'SIMPAN PROFIL SAYA'}
-            </button>
-          </div>
+          <button 
+            type="submit" 
+            disabled={saving}
+            className="w-full bg-gradient-to-r from-indigo-800 to-indigo-700 hover:from-indigo-700 hover:to-indigo-600 text-white font-black text-xs tracking-wider uppercase py-4 rounded-2xl shadow-md transform active:scale-[0.98] transition-all disabled:opacity-50"
+          >
+            {saving ? 'Menyimpan...' : 'Simpan Pembaruan'}
+          </button>
 
         </form>
       </div>

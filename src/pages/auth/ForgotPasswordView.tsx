@@ -1,5 +1,5 @@
 export default function ForgotPasswordView({ onBack }: any) {
-  const WA_NUMBER = '628XXXXXXXXX'; 
+  const WA_NUMBER = '6281289922400'; 
   const WA_MESSAGE = encodeURIComponent('Halo admin, saya ingin reset password akun kost saya. Nama saya: ... Nomor kamar: ...');
 
   return (

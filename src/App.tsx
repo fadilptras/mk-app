@@ -20,6 +20,7 @@ import KelolaPenghuniView from './pages/admin/KelolaPenghuniView';
 import SetListrikView from './pages/admin/SetListrikView';
 import SetWifiView from './pages/admin/SetWifiView';
 import KelolaLaporanView from './pages/admin/KelolaLaporanView';
+import KontrakView from './pages/penghuni/KontrakView';
 
 function App() {
   return (
@@ -42,6 +43,7 @@ function App() {
             <Route path="/lapor" element={<LaporView />} />
             <Route path="/notifications" element={<NotificationView />} />
             <Route path="/peraturan" element={<PeraturanView />} />
+            <Route path="/kontrak" element={<KontrakView />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/auth" replace />} />

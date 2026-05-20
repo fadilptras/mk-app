@@ -13,7 +13,7 @@ interface Announcement {
 
 export default function AnnouncementSection() {
   const navigate = useNavigate();
-  const { loading: isProfileLoading, isProfileComplete: profileComplete } = useProfileCheck();
+  const { loading: isProfileLoading, isProfileComplete: profileComplete, profileData } = useProfileCheck();
   
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [isLoadingAnnouncements, setIsLoadingAnnouncements] = useState(true);
@@ -46,12 +46,12 @@ export default function AnnouncementSection() {
     );
   }
 
-  // PRIORITAS 1: Profil belum lengkap (Warna MERAH)
+  // 1. Profil belum lengkap (Warna MERAH - Urgensi Tinggi)
   if (!profileComplete) {
     return (
       <div className="bg-gradient-to-r from-red-500 to-rose-600 p-4 rounded-2xl shadow-lg flex items-center gap-4 border border-red-400">
         <div className="bg-white/20 p-2.5 rounded-xl flex-shrink-0 backdrop-blur-sm">
-          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
         </div>
         <div className="flex-1">
           <p className="text-xs font-black text-white tracking-wide">Aktivasi Akun!</p>
@@ -62,12 +62,30 @@ export default function AnnouncementSection() {
     );
   }
 
-  // PRIORITAS 2 & 3: Ada Pengumuman Aktif atau Sistem Normal
+  // 2. Data Kontrak Belum Lengkap (Warna Solid Orange Gelap)
+  const isContractComplete = profileData?.is_contract_complete === true;
+  
+  if (!isContractComplete) {
+    return (
+      // Perubahan utama di sini: menggunakan bg-orange-600 secara solid
+      <div className="bg-orange-600 p-4 rounded-2xl shadow-lg flex items-center gap-4 border border-orange-500">
+        <div className="bg-white/20 p-2.5 rounded-xl flex-shrink-0 backdrop-blur-sm">
+          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /></svg>
+        </div>
+        <div className="flex-1">
+          <p className="text-xs font-black text-white tracking-wide">Isi Kontrak Sewa!</p>
+          <p className="text-[10px] font-medium text-orange-100 mt-0.5">Selesaikan administrasi Anda.</p>
+        </div>
+        <button onClick={() => navigate('/kontrak')} className="bg-white text-orange-600 text-[10px] font-black px-4 py-2 rounded-lg shadow-sm">KONTRAK</button>
+      </div>
+    );
+  }
+
+  // 3. Ada Pengumuman Aktif atau Sistem Normal
   return (
     <div className="space-y-4">
       {announcements.length > 0 ? (
         announcements.map((item) => {
-          // Pengumuman dinamis: Warna dasar KUNING/ORANGE
           let gradientBorder = 'from-amber-400 to-orange-500';
           let tagBg = 'bg-orange-50';
           let tagText = 'text-orange-600';
@@ -98,7 +116,6 @@ export default function AnnouncementSection() {
           );
         })
       ) : (
-        // DEFAULT WELCOME (Warna HIJAU - Jika tidak ada pengumuman sama sekali)
         <div className="bg-white p-4 rounded-[24px] shadow-sm border border-gray-100 relative overflow-hidden flex flex-col justify-center">
           <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-emerald-400 to-green-500"></div>
           <div className="flex items-center justify-between mb-2 pl-2">

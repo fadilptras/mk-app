@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfileCheck } from '../../hooks/useProfileCheck';
 import AnnouncementSection from '../../components/penghuni/AnnouncementSection';
@@ -9,15 +8,15 @@ export default function PenghuniDashboardView() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F4F7FC]">
+      <div className="min-h-screen flex items-center justify-center bg-[#BFDDF0]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFDFD] pb-24 font-sans text-gray-800">
-      <div className="max-w-md mx-auto relative min-h-screen bg-[#F8FAFC] shadow-inner">
+    <div className="min-h-screen bg-[#BFDDF0] pb-24 font-sans text-gray-800">
+      <div className="max-w-md mx-auto relative min-h-screen bg-[#BFDDF0] shadow-inner">
         
         {/* HEADER */}
         <div className="bg-gradient-to-br from-indigo-800 via-indigo-700 to-blue-700 pt-6 pb-16 px-6 rounded-b-[40px] shadow-lg relative overflow-hidden">
@@ -43,7 +42,11 @@ export default function PenghuniDashboardView() {
                 <h1 className="text-lg font-black text-white tracking-tight leading-tight">{profileData?.nama_lengkap || 'Penghuni'}</h1>
               </div>
             </div>
-            <button onClick={() => navigate('/notifications')} className="bg-white/20 p-2.5 rounded-2xl backdrop-blur-md border border-white/30 text-white shadow-lg active:scale-90 transition-all">
+            <button 
+              onClick={() => navigate('/notifications')} 
+              aria-label="Notifikasi"
+              className="bg-white/20 p-2.5 rounded-2xl backdrop-blur-md border border-white/30 text-white shadow-lg active:scale-90 transition-all"
+            >
               <div className="relative">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
                 <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-rose-500 border-2 border-indigo-700 rounded-full animate-pulse"></span>
@@ -60,14 +63,23 @@ export default function PenghuniDashboardView() {
           {/* GRID 4 FITUR */}
           <div className="grid grid-cols-4 gap-3">
             {[
-              { label: 'Sewa', path: '/sewa', icon: 'M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z', gradient: 'from-indigo-500 to-blue-600', bg: 'bg-indigo-50/50', border: 'border-indigo-100/50' },
-              { label: 'WiFi', path: '/wifi', icon: 'M8.288 15.038a5.25 5.25 0 017.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 011.06 0z', gradient: 'from-sky-400 to-blue-500', bg: 'bg-sky-50/50', border: 'border-sky-100/50' },
-              { label: 'Listrik', path: '/listrik', icon: 'M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z', gradient: 'from-amber-400 to-orange-500', bg: 'bg-amber-50/50', border: 'border-amber-100/50' },
-              { label: 'Lapor', path: '/lapor', icon: 'M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z', gradient: 'from-rose-400 to-pink-500', bg: 'bg-rose-50/50', border: 'border-rose-100/50' }
+              { label: 'Sewa', path: '/sewa', icon: 'M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z', gradient: 'from-indigo-500 to-blue-600' },
+              { label: 'WiFi', path: '/wifi', icon: 'M8.288 15.038a5.25 5.25 0 017.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 011.06 0z', gradient: 'from-sky-400 to-blue-500' },
+              { label: 'Listrik', path: '/listrik', icon: 'M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z', gradient: 'from-amber-400 to-orange-500' },
+              { label: 'Lapor', path: '/lapor', icon: 'M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z', gradient: 'from-rose-400 to-pink-500' }
             ].map((menu, idx) => (
-              <button key={idx} onClick={() => navigate(menu.path)} className={`flex flex-col items-center gap-2.5 p-3 rounded-[24px] ${menu.bg} border ${menu.border} shadow-sm group active:scale-90 transition-all`}>
-                <div className={`w-[48px] h-[48px] rounded-2xl bg-gradient-to-br ${menu.gradient} text-white shadow-lg flex items-center justify-center`}><svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path d={menu.icon} strokeLinecap="round" strokeLinejoin="round" /></svg></div>
-                <span className="text-[10px] font-black text-gray-700 uppercase tracking-tighter">{menu.label}</span>
+              <button 
+                key={idx} 
+                onClick={() => navigate(menu.path)} 
+                /* Ubah bagian ini: mengganti ${menu.bg} dengan bg-white dan menyamakan border */
+                className="flex flex-col items-center gap-2.5 p-3 rounded-[16px] bg-white border border-gray-100 shadow-sm group active:scale-90 transition-all"
+              >
+                <div className={`w-[48px] h-[48px] rounded-2xl bg-gradient-to-br ${menu.gradient} text-white shadow-lg flex items-center justify-center`}>
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
+                    <path d={menu.icon} strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <span className="text-[10px] font-black text-black uppercase tracking-tighter">{menu.label}</span>
               </button>
             ))}
           </div>

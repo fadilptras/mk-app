@@ -1,18 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useProfileCheck } from './useProfileCheck';
 
 export const useKontrak = () => {
     const { user, profileData } = useProfileCheck();
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [activeContract, setActiveContract] = useState<any>(null);
+    const [contractHistory, setContractHistory] = useState<any[]>([]);
 
-    // LOGIC OTOMATIS PENENTUAN JENIS KONTRAK
+    // Logika penentuan jenis sewa (Baru vs Perpanjang)
     const jenisKontrakOtomatis = profileData?.is_contract_complete ? 'perpanjang' : 'baru';
 
-    // Cek apakah user sudah punya kontrak yang sedang aktif atau menunggu persetujuan
-    const fetchCurrentContract = async () => {
-        if (!user) return;
+    const fetchCurrentContract = useCallback(async () => {
+        if (!user) {
+            setLoading(false);
+            return;
+        }
         try {
             const { data, error } = await supabase
                 .from('contract')
@@ -21,22 +24,32 @@ export const useKontrak = () => {
                     approver:approver_id ( full_name )
                 `)
                 .eq('user_id', user.id)
-                .in('status', ['menunggu_persetujuan', 'aktif'])
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .single();
+                .order('created_at', { ascending: false });
 
-            // Abaikan error jika tidak ada baris (PGRST116)
-            if (error && error.code !== 'PGRST116') throw error;
-            if (data) setActiveContract(data);
-        } catch (err) {
-            console.log('Belum ada kontrak aktif');
+            if (error) throw error;
+
+            if (data && data.length > 0) {
+                // Cari kontrak yang berstatus aktif atau menunggu persetujuan
+                const active = data.find(c => c.status === 'menunggu_persetujuan' || c.status === 'aktif');
+                // Sisa kontrak lainnya masuk ke history
+                const history = data.filter(c => c.id !== active?.id);
+
+                setActiveContract(active || null);
+                setContractHistory(history);
+            } else {
+                setActiveContract(null);
+                setContractHistory([]);
+            }
+        } catch (err: any) {
+            console.error('Error fetching contracts:', err.message);
+        } finally {
+            setLoading(false);
         }
-    };
+    }, [user]);
 
     useEffect(() => {
         fetchCurrentContract();
-    }, [user]);
+    }, [user, fetchCurrentContract]);
 
     const ajukanKontrak = async (
         mulaiSewa: string,
@@ -49,7 +62,8 @@ export const useKontrak = () => {
         setLoading(true);
         
         try {
-            const { error } = await supabase.from('contract').insert({
+            // 1. Simpan data pengajuan ke tabel contract
+            const { error: insertError } = await supabase.from('contract').insert({
                 user_id: user.id,
                 jenis_kontrak: jenisKontrakOtomatis,
                 mulai_sewa: mulaiSewa,
@@ -61,10 +75,24 @@ export const useKontrak = () => {
                 is_agreed: true
             });
 
-            if (error) throw error;
-            await fetchCurrentContract(); // Refresh view
+            if (insertError) throw insertError;
+
+            // 2. UPDATE status di tabel users agar is_contract_complete jadi TRUE
+            const { error: updateError } = await supabase
+                .from('users')
+                .update({ is_contract_complete: true })
+                .eq('id', user.id);
+
+            if (updateError) {
+                console.error("Gagal update status user:", updateError.message);
+                throw updateError;
+            }
+            
+            // 3. Paksa ambil ulang data kontrak dari database untuk UI
+            await fetchCurrentContract(); 
             return true;
         } catch (err: any) {
+            alert(`Gagal mengajukan kontrak: ${err.message}`);
             console.error('Gagal mengajukan kontrak:', err);
             return false;
         } finally {
@@ -74,8 +102,10 @@ export const useKontrak = () => {
 
     return { 
         activeContract, 
+        contractHistory,
         jenisKontrakOtomatis, 
         ajukanKontrak, 
-        loading 
+        loading,
+        refreshKontrak: fetchCurrentContract
     };
 };

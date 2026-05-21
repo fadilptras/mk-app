@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
 export function useProfileCheck() {
@@ -7,63 +7,72 @@ export function useProfileCheck() {
   const [isProfileComplete, setIsProfileComplete] = useState<boolean>(true);
   const [profileData, setProfileData] = useState<any>(null);
 
-  useEffect(() => {
-    const checkUserStatus = async () => {
-      try {
-        setLoading(true);
-        // 1. Ambil Sesi User Login
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        
-        if (!authUser) {
-          setLoading(false);
-          return;
-        }
-        
-        setUser(authUser);
+  const checkUserStatus = useCallback(async () => {
+    try {
+      setLoading(true);
+      // 1. Ambil Sesi User Login
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      
+      if (!authUser) {
+        setLoading(false);
+        return;
+      }
+      
+      setUser(authUser);
 
-        // 2. Ambil data dari tabel users, LAKUKAN JOIN ke tabel rooms untuk nama kamar
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select(`
-            is_profile_complete, 
-            is_contract_complete, 
-            biaya_sewa, 
-            biaya_deposit, 
-            room_id, 
-            email,
-            rooms ( room_number )
-          `)
-          .eq('id', authUser.id)
-          .single();
+      // 2. Ambil data dari tabel users, LAKUKAN JOIN ke tabel rooms untuk nama kamar
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select(`
+          is_profile_complete, 
+          is_contract_complete, 
+          biaya_sewa, 
+          biaya_deposit, 
+          room_id, 
+          email,
+          rooms ( room_number )
+        `)
+        .eq('id', authUser.id)
+        .single();
 
-        if (userError && userError.code !== 'PGRST116') throw userError;
+      if (userError && userError.code !== 'PGRST116') throw userError;
 
-        setIsProfileComplete(userData?.is_profile_complete || false);
+      setIsProfileComplete(userData?.is_profile_complete || false);
 
-        // 3. Ambil data profil dari user_profiles (nama, alamat, nik)
+      // 3. Ambil data profil dari user_profiles (nama, alamat, nik)
         const { data: profile } = await supabase
           .from('user_profiles')
           .select('*')
           .eq('user_id', authUser.id)
           .single();
             
+        // ----- TAMBAHKAN LOGIKA INI -----
+        // Tangani jika Supabase mengembalikan relasi `rooms` sebagai array
+        const roomsData: any = userData?.rooms;
+        const fetchedRoomNumber = Array.isArray(roomsData) 
+            ? roomsData[0]?.room_number 
+            : roomsData?.room_number;
+        // --------------------------------
+
         // 4. GABUNGKAN SEMUA DATA 
         setProfileData({
           email: authUser.email, 
-          room_number: userData?.rooms?.room_number || null, // Ambil nomor kamar dari join tabel
+          room_number: fetchedRoomNumber || null, // <- Gunakan variabel baru di sini
           ...profile,           
           ...userData            
         });
 
       } catch (error) {
-        console.error("Gagal memeriksa profil user:", error);
+        console.error("Error checking profile:", error);
       } finally {
         setLoading(false);
       }
-    };
+  }, []); // useCallback memastikan fungsi tidak dibuat berulang kali
 
+  useEffect(() => {
     checkUserStatus();
-  }, []);
+  }, [checkUserStatus]);
 
-  return { loading, user, isProfileComplete, profileData };
+  // Ekspor fungsi refreshProfile agar bisa dipakai saat submit kontrak
+  return { loading, user, isProfileComplete, profileData, refreshProfile: checkUserStatus };
 }

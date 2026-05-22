@@ -2,17 +2,29 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfileCheck } from '../../hooks/useProfileCheck';
+import { useKontrak } from '../../hooks/useKontrak';
 
 export default function SewaView() {
   const navigate = useNavigate();
-  const { profileData, loading } = useProfileCheck();
+  const { profileData, loading: profileLoading } = useProfileCheck();
+  const { activeContract, getRemainingDays, loading: contractLoading } = useKontrak();
 
-  // Data Dummy untuk UI
-  const contractEndDate = "20 Ags 2026"; 
+  // Data Dummy untuk UI Tagihan
   const currentTagihan = 1500000;
   const jatuhTempo = "20 Mei 2026";
 
   const isContractComplete = profileData?.is_contract_complete === true;
+  
+  // Ambil sisa hari secara dinamis dari hook kontrak aktif
+  const sisaHari = activeContract ? getRemainingDays(activeContract.akhir_sewa) : 0;
+  const contractEndDate = activeContract 
+    ? new Date(activeContract.akhir_sewa).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+    : "20 Ags 2026";
+
+  // Aturan Validasi Pembukaan Akses Form Perpanjangan (Maksimal H-14)
+  const isUserBaru = !activeContract;
+  const isSisaHariValid = activeContract?.status === 'aktif' && sisaHari <= 14;
+  const canRenew = isUserBaru || isSisaHariValid;
 
   const formatRupiah = (angka: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -22,7 +34,7 @@ export default function SewaView() {
     }).format(angka);
   };
 
-  if (loading) {
+  if (profileLoading || contractLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#BFDDF0]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
@@ -34,7 +46,7 @@ export default function SewaView() {
     <div className="min-h-screen bg-[#BFDDF0] font-sans text-gray-800 pb-10">
       <div className="max-w-md mx-auto relative min-h-screen bg-[#BFDDF0] shadow-inner">
         
-        {/* Header Biru Premium (Selaras dengan WifiView) */}
+        {/* Header Biru Premium */}
         <div className="bg-indigo-600 px-5 py-4 flex items-center gap-4 sticky top-0 z-20 shadow-md">
           <button onClick={() => navigate(-1)} className="p-2 bg-white/10 hover:bg-white/20 active:scale-95 transition-all rounded-full text-white">
              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
@@ -45,7 +57,7 @@ export default function SewaView() {
         <div className="p-5 space-y-6">
 
           {/* ============================================================== */}
-          {/* SECTION STATUS KONTRAK (COMPACT VERSION) */}
+          {/* SECTION STATUS KONTRAK */}
           {/* ============================================================== */}
           
           {!isContractComplete ? (
@@ -61,17 +73,19 @@ export default function SewaView() {
                 </p>
               </div>
               <button 
-                onClick={() => navigate('/kontrak')}
+                onClick={() => navigate('/kontrak/perpanjang')} // Arahkan pengguna baru langsung ke Form Kontrak
                 className="relative z-10 bg-white text-orange-600 text-[10px] font-black px-4 py-2.5 rounded-xl shadow-sm transition-all active:scale-95 whitespace-nowrap"
               >
                 BUAT KONTRAK
               </button>
             </div>
           ) : (
-            // PENGHUNI LAMA (PERPANJANG)
+            // PENGHUNI LAMA (DIKEMBALIKAN KE DESAIN ASLI DENGAN TAMBAHAN TOMBOL 20%)
             <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-3 flex items-center justify-between">
+              
+              {/* Sisi Kiri: Informasi Masa Aktif */}
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+                <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 shrink-0">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
                 </div>
                 <div>
@@ -79,22 +93,40 @@ export default function SewaView() {
                   <p className="text-xs font-black text-gray-800">{contractEndDate}</p>
                 </div>
               </div>
-              <button 
-                onClick={() => navigate('/kontrak')}
-                className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-[10px] font-black px-3 py-2 rounded-lg transition-all active:scale-95 flex items-center gap-1.5"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
-                PERPANJANG
-              </button>
+              
+              {/* Sisi Kanan: Grup Tombol Pembagian 20% & 80% */}
+              <div className="flex items-center gap-1.5 ml-2">
+                
+                {/* 20% Tombol Navigasi ke Dashboard Kontrak */}
+                <button 
+                  onClick={() => navigate('/kontrak')}
+                  className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 p-2 rounded-lg transition-all active:scale-95 flex items-center justify-center shrink-0"
+                  title="Dashboard Kontrak"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                  </svg>
+                </button>
+
+                {/* 80% Tombol Perpanjang (Desain UTUH seperti aslinya) */}
+                <button 
+                  disabled={!canRenew}
+                  onClick={() => navigate('/kontrak/perpanjang')}
+                  className={`${canRenew ? 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100' : 'bg-gray-100 text-gray-400 cursor-not-allowed'} text-[10px] font-black px-3 py-2 rounded-lg transition-all active:scale-95 flex items-center gap-1.5 whitespace-nowrap`}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+                  PERPANJANG
+                </button>
+
+              </div>
             </div>
           )}
 
           {/* ============================================================== */}
-          {/* CARD TAGIHAN BULAN INI (Desain Bersih & Modern) */}
+          {/* CARD TAGIHAN BULAN INI & RIWAYAT (Bagian Bawah Tidak Disentuh) */}
           {/* ============================================================== */}
           
           <div className="bg-white rounded-[24px] p-5 shadow-lg shadow-indigo-100/50 border border-white relative overflow-hidden">
-            {/* Ornamen Latar Tipis */}
             <div className="absolute -right-6 -top-6 w-32 h-32 bg-indigo-50/50 rounded-full blur-2xl pointer-events-none"></div>
             
             <div className="flex justify-between items-start mb-5 relative z-10">
@@ -117,7 +149,6 @@ export default function SewaView() {
               </div>
             </div>
 
-            {/* Tombol Bayar Sekarang */}
             {isContractComplete ? (
               <button 
                 onClick={() => alert("Masuk ke halaman upload struk/detail bayar")}
@@ -133,16 +164,11 @@ export default function SewaView() {
             )}
           </div>
 
-          {/* ============================================================== */}
-          {/* RIWAYAT PEMBAYARAN */}
-          {/* ============================================================== */}
-          
           <div>
             <div className="flex justify-between items-center mb-4 pl-1">
               <h3 className="font-black text-sm text-gray-800 uppercase tracking-tight">Riwayat Transaksi</h3>
             </div>
             <div className="space-y-3">
-              {/* Dummy Data List */}
               {[1, 2, 3].map((item) => (
                 <div key={item} className="bg-white p-4 rounded-[20px] shadow-sm border border-gray-100 flex justify-between items-center hover:bg-gray-50 transition-colors">
                   <div className="flex gap-3 items-center">

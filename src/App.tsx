@@ -20,7 +20,9 @@ import KelolaPenghuniView from './pages/admin/KelolaPenghuniView';
 import SetListrikView from './pages/admin/SetListrikView';
 import SetWifiView from './pages/admin/SetWifiView';
 import KelolaLaporanView from './pages/admin/KelolaLaporanView';
-import KontrakView from './pages/penghuni/KontrakView';
+// import KontrakView from './pages/penghuni/KontrakView';
+import KontrakDashboardView from './pages/penghuni/KontrakDashboardView';
+import FormKontrakView from './pages/penghuni/FormKontrakView';
 
 function App() {
   return (
@@ -43,7 +45,9 @@ function App() {
             <Route path="/lapor" element={<LaporView />} />
             <Route path="/notifications" element={<NotificationView />} />
             <Route path="/peraturan" element={<PeraturanView />} />
-            <Route path="/kontrak" element={<KontrakView />} />
+            {/* <Route path="/kontrak" element={<KontrakView />} /> */}
+            <Route path="/kontrak" element={<KontrakDashboardView />} />
+            <Route path="/kontrak/perpanjang" element={<FormKontrakView />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/auth" replace />} />

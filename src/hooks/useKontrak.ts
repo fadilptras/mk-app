@@ -51,6 +51,17 @@ export const useKontrak = () => {
         fetchCurrentContract();
     }, [user, fetchCurrentContract]);
 
+    // Fungsi utilitas helper hitung sisa hari
+    const getRemainingDays = (endDateStr: string) => {
+        if (!endDateStr) return 0;
+        const end = new Date(endDateStr);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const diffTime = end.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays > 0 ? diffDays : 0;
+    };
+
     const ajukanKontrak = async (
         mulaiSewa: string,
         lamaSewa: number,
@@ -62,7 +73,6 @@ export const useKontrak = () => {
         setLoading(true);
         
         try {
-            // 1. Simpan data pengajuan ke tabel contract
             const { error: insertError } = await supabase.from('contract').insert({
                 user_id: user.id,
                 jenis_kontrak: jenisKontrakOtomatis,
@@ -77,7 +87,6 @@ export const useKontrak = () => {
 
             if (insertError) throw insertError;
 
-            // 2. UPDATE status di tabel users agar is_contract_complete jadi TRUE
             const { error: updateError } = await supabase
                 .from('users')
                 .update({ is_contract_complete: true })
@@ -88,7 +97,6 @@ export const useKontrak = () => {
                 throw updateError;
             }
             
-            // 3. Paksa ambil ulang data kontrak dari database untuk UI
             await fetchCurrentContract(); 
             return true;
         } catch (err: any) {
@@ -106,6 +114,7 @@ export const useKontrak = () => {
         jenisKontrakOtomatis, 
         ajukanKontrak, 
         loading,
+        getRemainingDays,
         refreshKontrak: fetchCurrentContract
     };
 };

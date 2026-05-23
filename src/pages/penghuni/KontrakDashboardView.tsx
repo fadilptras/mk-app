@@ -236,9 +236,9 @@ export default function KontrakDashboardView() {
               ))}
             </div>
           ) : (
-             <div className="p-4 bg-white/40 rounded-2xl border border-dashed border-white text-center">
-               <p className="text-[11px] text-slate-500 italic">Belum tersedia data arsip lama.</p>
-             </div>
+            <div className="p-4 bg-white/40 rounded-2xl border border-dashed border-white text-center">
+              <p className="text-[11px] text-slate-500 italic">Belum tersedia data arsip lama.</p>
+            </div>
           )}
         </section>
 

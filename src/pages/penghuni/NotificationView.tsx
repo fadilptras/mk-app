@@ -27,8 +27,8 @@ export default function NotificationView() {
       <div className="max-w-md mx-auto min-h-screen bg-[#F8FAFC]">
         {/* Header Biru Selaras */}
         <div className="bg-white px-5 py-4 flex items-center gap-4 sticky top-0 z-20 shadow-sm border-b-2 border-indigo-50">
-          <button onClick={() => navigate('/dashboard')} className="p-2 bg-indigo-50 rounded-full text-indigo-600">
-             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" /></svg>
+          <button onClick={() => navigate('/dashboard')} title='Kembali ke Dashboard' className="p-2 bg-indigo-50 rounded-full text-indigo-600">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" /></svg>
           </button>
           <h1 className="text-lg font-black text-gray-800 tracking-tight">Notifikasi</h1>
         </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 
@@ -84,18 +84,23 @@ export default function ListrikView() {
         
         {/* Header Biru Premium */}
         <div className="bg-indigo-600 px-5 py-4 flex items-center gap-4 sticky top-0 z-20 shadow-md">
-          <button onClick={() => navigate('/dashboard')} className="p-2 bg-white/10 hover:bg-white/20 active:scale-95 transition-all rounded-full text-white">
-             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" /></svg>
+          <button 
+            onClick={() => navigate('/dashboard')} 
+            aria-label="Kembali ke Dashboard"
+            title="Kembali"
+            className="p-2 bg-white/10 hover:bg-white/20 active:scale-95 transition-all rounded-full text-white"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" /></svg>
           </button>
           <h1 className="text-lg font-black text-white tracking-tight">Token Listrik</h1>
         </div>
 
         <div className="p-6">
           {loading ? (
-             <div className="flex flex-col items-center justify-center p-12 mt-10">
-               <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Memuat Data...</p>
-             </div>
+            <div className="flex flex-col items-center justify-center p-12 mt-10">
+              <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Memuat Data...</p>
+            </div>
           ) : error ? (
             <div className="bg-red-50 border border-red-200 p-5 rounded-[32px] mt-4 text-center">
               <p className="text-[11px] font-bold text-red-800 leading-relaxed uppercase mb-3">
@@ -165,27 +170,27 @@ export default function ListrikView() {
                 </h3>
                 
                 <div className="bg-white rounded-[32px] p-6 shadow-sm border border-gray-100 relative overflow-hidden">
-                   <div className="absolute -right-8 -top-8 w-24 h-24 bg-indigo-50 rounded-full blur-2xl opacity-60 pointer-events-none"></div>
-                   
-                   <div className="relative z-10">
-                     <StepGuide 
+                  <div className="absolute -right-8 -top-8 w-24 h-24 bg-indigo-50 rounded-full blur-2xl opacity-60 pointer-events-none"></div>
+
+                  <div className="relative z-10">
+                    <StepGuide 
                         number="1" 
                         title="Beli Token" 
                         description="Buka m-banking/e-wallet, pilih menu Listrik PLN > Token Listrik. Masukkan nomor meteran di atas."
-                     />
-                     <StepGuide 
+                    />
+                    <StepGuide 
                         number="2" 
                         title="Dapatkan Kode" 
                         description="Selesaikan pembayaran. Anda akan menerima 20 digit angka token."
                         highlight="Catat atau simpan 20 digit kode tersebut."
-                     />
-                     <StepGuide 
+                    />
+                    <StepGuide 
                         number="3" 
                         title="Input Fisik" 
                         description="Ketik 20 digit angka pada keypad meteran fisik di depan kamar, lalu tekan tombol 'Enter' (merah/hijau)."
                         highlight="Jika muncul 'ACCEPT' / 'BENAR', daya berhasil bertambah."
-                     />
-                   </div>
+                    />
+                  </div>
                 </div>
               </div>
             </>

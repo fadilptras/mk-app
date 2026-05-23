@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '../../lib/supabase';
@@ -69,8 +69,13 @@ export default function WifiView() {
         
         {/* Header Biru Premium */}
         <div className="bg-indigo-600 px-5 py-4 flex items-center gap-4 sticky top-0 z-20 shadow-md">
-          <button onClick={() => navigate('/dashboard')} className="p-2 bg-white/10 hover:bg-white/20 active:scale-95 transition-all rounded-full text-white">
-             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" /></svg>
+          <button 
+            onClick={() => navigate('/dashboard')} 
+            aria-label="Kembali ke Dashboard"
+            title="Kembali"
+            className="p-2 bg-white/10 hover:bg-white/20 active:scale-95 transition-all rounded-full text-white"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" /></svg>
           </button>
           <h1 className="text-lg font-black text-white tracking-tight">Akses WiFi</h1>
         </div>

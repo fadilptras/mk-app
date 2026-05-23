@@ -1,3 +1,4 @@
+// src/hooks/useProfileCheck.ts
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
@@ -20,7 +21,7 @@ export function useProfileCheck() {
       
       setUser(authUser);
 
-      // 2. Ambil data dari tabel users, LAKUKAN JOIN ke tabel rooms untuk nama kamar
+      // 2. Ambil data dari tabel users (Melakukan relasi ke tabel rooms)
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select(`
@@ -30,6 +31,8 @@ export function useProfileCheck() {
           biaya_deposit, 
           room_id, 
           email,
+          no_rek_pembayaran,
+          nama_rek_pembayaran,
           rooms ( room_number )
         `)
         .eq('id', authUser.id)
@@ -39,40 +42,44 @@ export function useProfileCheck() {
 
       setIsProfileComplete(userData?.is_profile_complete || false);
 
-      // 3. Ambil data profil dari user_profiles (nama, alamat, nik)
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('user_id', authUser.id)
-          .single();
+      // 3. Ambil data profil dari user_profiles
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', authUser.id)
+        .single();
             
-        // ----- TAMBAHKAN LOGIKA INI -----
-        // Tangani jika Supabase mengembalikan relasi `rooms` sebagai array
-        const roomsData: any = userData?.rooms;
-        const fetchedRoomNumber = Array.isArray(roomsData) 
-            ? roomsData[0]?.room_number 
-            : roomsData?.room_number;
-        // --------------------------------
+      const roomsData: any = userData?.rooms;
+      const fetchedRoomNumber = Array.isArray(roomsData) 
+          ? roomsData[0]?.room_number 
+          : roomsData?.room_number;
 
-        // 4. GABUNGKAN SEMUA DATA 
-        setProfileData({
-          email: authUser.email, 
-          room_number: fetchedRoomNumber || null, // <- Gunakan variabel baru di sini
-          ...profile,           
-          ...userData            
-        });
+      // 4. GABUNGKAN SEMUA DATA 
+      // DIPERBAIKI: Mengubah urutan properti kustom ke baris paling bawah 
+      // agar nilainya aman dari overwrite spread operator database.
+      setProfileData({
+        ...profile,           
+        ...userData,
+        email: authUser.email, 
+        room_number: fetchedRoomNumber || null            
+      });
 
-      } catch (error) {
-        console.error("Error checking profile:", error);
-      } finally {
-        setLoading(false);
-      }
-  }, []); // useCallback memastikan fungsi tidak dibuat berulang kali
+    } catch (error) {
+      console.error("Error checking profile:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     checkUserStatus();
   }, [checkUserStatus]);
 
-  // Ekspor fungsi refreshProfile agar bisa dipakai saat submit kontrak
-  return { loading, user, isProfileComplete, profileData, refreshProfile: checkUserStatus };
+  return { 
+    user, 
+    loading, 
+    isProfileComplete, 
+    profileData, 
+    refreshProfile: checkUserStatus 
+  };
 }

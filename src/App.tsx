@@ -23,6 +23,8 @@ import KelolaLaporanView from './pages/admin/KelolaLaporanView';
 // import KontrakView from './pages/penghuni/KontrakView';
 import KontrakDashboardView from './pages/penghuni/KontrakDashboardView';
 import FormKontrakView from './pages/penghuni/FormKontrakView';
+import FormBayarView from './pages/penghuni/FormBayarView';
+import DetailBayarView from './pages/penghuni/DetailRiwayatPembayaran';
 
 function App() {
   return (
@@ -48,6 +50,8 @@ function App() {
             {/* <Route path="/kontrak" element={<KontrakView />} /> */}
             <Route path="/kontrak" element={<KontrakDashboardView />} />
             <Route path="/kontrak/perpanjang" element={<FormKontrakView />} />
+            <Route path="/sewa/bayar" element={<FormBayarView />} />
+            <Route path="/sewa/detail/:id" element={<DetailBayarView />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/auth" replace />} />

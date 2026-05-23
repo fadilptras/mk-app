@@ -135,8 +135,8 @@ export default function LaporView() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFDFD] font-sans text-gray-800 pb-16">
-      <div className="max-w-md mx-auto relative min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-[#BFDDF0] font-sans text-gray-800 pb-16">
+      <div className="max-w-md mx-auto relative min-h-screen bg-[#BFDDF0]">
         
         {/* Header Biru Premium */}
         <div className="bg-indigo-600 px-5 py-4 flex items-center gap-4 sticky top-0 z-20 shadow-md">
@@ -156,18 +156,18 @@ export default function LaporView() {
         <div className="p-6">
           
           {/* Banner Penjelasan - Elegan & Kontras Tinggi */}
-          <div className="bg-indigo-50/80 border border-indigo-100/80 rounded-2xl p-4 shadow-[0_8px_30px_rgba(0,0,0,0.01)] flex gap-3.5 items-start mb-6">
-            <div className="p-2.5 bg-indigo-600 text-white rounded-xl shrink-0 flex items-center justify-center shadow-sm">
+          <div className="bg-white border border-gray-100 rounded-[28px] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.03)] flex gap-4 items-start mb-6">
+            <div className="p-3 bg-indigo-600 text-white rounded-2xl shrink-0 flex items-center justify-center shadow-md">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <div className="space-y-0.5">
-              <h2 className="text-[11px] font-black text-indigo-950 uppercase tracking-wider flex items-center gap-1.5">
+            <div className="space-y-1 mt-0.5">
+              <h2 className="text-[11px] font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
                 Pusat Bantuan Kosan
                 <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse"></span>
               </h2>
-              <p className="text-[10px] font-bold text-indigo-900/80 leading-normal uppercase">
+              <p className="text-[10px] font-bold text-gray-500 leading-relaxed uppercase">
                 Sampaikan kendala fasilitas kamar atau area bersama agar segera ditindaklanjuti secara langsung oleh Admin.
               </p>
             </div>

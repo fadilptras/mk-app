@@ -1,3 +1,4 @@
+// src/hooks/useKontrak.ts
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useProfileCheck } from './useProfileCheck';
@@ -19,10 +20,7 @@ export const useKontrak = () => {
         try {
             const { data, error } = await supabase
                 .from('contract')
-                .select(`
-                    *,
-                    approver:approver_id ( full_name )
-                `)
+                .select('*') // <--- DIPERBAIKI: Hapus join ke approver_id yang menyebabkan error
                 .eq('user_id', user.id)
                 .order('created_at', { ascending: false });
 

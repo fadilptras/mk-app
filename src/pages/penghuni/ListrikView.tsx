@@ -79,8 +79,8 @@ export default function ListrikView() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFDFD] font-sans text-gray-800 pb-10">
-      <div className="max-w-md mx-auto relative min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-[#BFDDF0] font-sans text-gray-800 pb-10">
+      <div className="max-w-md mx-auto relative min-h-screen bg-[#BFDDF0]">
         
         {/* Header Biru Premium */}
         <div className="bg-indigo-600 px-5 py-4 flex items-center gap-4 sticky top-0 z-20 shadow-md">
@@ -111,18 +111,18 @@ export default function ListrikView() {
           ) : meterInfo ? (
             <>
               {/* Banner Penjelasan - Elegan & Kontras Tinggi */}
-              <div className="bg-indigo-50/80 border border-indigo-100/80 rounded-2xl p-4 shadow-[0_8px_30px_rgba(0,0,0,0.01)] flex gap-3.5 items-start mb-6">
-                <div className="p-2.5 bg-indigo-600 text-white rounded-xl shrink-0 flex items-center justify-center shadow-sm">
+              <div className="bg-white border border-gray-100 rounded-[28px] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.03)] flex gap-4 items-start mb-6">
+                <div className="p-3 bg-indigo-600 text-white rounded-2xl shrink-0 flex items-center justify-center shadow-md">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                <div className="space-y-0.5">
-                  <h2 className="text-[11px] font-black text-indigo-950 uppercase tracking-wider flex items-center gap-1.5">
+                <div className="space-y-1 mt-0.5">
+                  <h2 className="text-[11px] font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
                     Informasi Meteran
                     <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
                   </h2>
-                  <p className="text-[10px] font-bold text-indigo-900/80 leading-normal uppercase">
+                  <p className="text-[10px] font-bold text-gray-500 leading-relaxed uppercase">
                     Pastikan nama yang tertera saat pembelian token di aplikasi sesuai dengan nama di bawah ini.
                   </p>
                 </div>
@@ -132,18 +132,18 @@ export default function ListrikView() {
               <div className="bg-white rounded-[32px] p-6 shadow-[0_12px_40px_rgba(0,0,0,0.03)] border border-gray-100 text-center relative overflow-hidden mb-8">
                 <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-indigo-500 to-blue-600"></div>
                 
-                <div className="space-y-5 mt-2">
                   <div>
-                    <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1.5">No. Meteran (ID Pelanggan)</p>
+                    <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Nama Terdaftar</p>
                     <div className="bg-indigo-50 py-3.5 px-4 rounded-2xl border border-indigo-200 font-mono font-black text-2xl text-indigo-900 tracking-wider">
-                      {meterInfo.meter_number}
+                      {meterInfo.meter_name}
                     </div>
                   </div>
 
-                  <div>
-                    <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Nama Terdaftar</p>
-                    <div className="bg-gray-50 py-2.5 px-4 rounded-xl border border-gray-200 font-black text-gray-900 tracking-tight text-sm">
-                      {meterInfo.meter_name}
+                <div className="space-y-5 mt-2">
+                <div>
+                    <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1.5">No. Meteran (ID Pelanggan)</p>
+                    <div className="bg-indigo-50 py-3.5 px-4 rounded-2xl border border-indigo-200 font-mono font-black text-2xl text-indigo-900 tracking-wider">
+                      {meterInfo.meter_number}
                     </div>
                   </div>
                 </div>

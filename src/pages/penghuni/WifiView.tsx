@@ -96,20 +96,19 @@ export default function WifiView() {
           ) : wifiInfo ? (
             <>
               {/* Banner Penjelasan - DITAMPILKAN DI ATAS CARD UTAMA SEBAGAI BAGIAN DARI ALUR UI */}
-              <div className="bg-white border border-gray-100 rounded-[28px] p-5 shadow-sm flex gap-4 items-start mb-6">
-                <div className="p-3 bg-indigo-600 text-white rounded-2xl shrink-0 flex items-center justify-center shadow-lg">
+              <div className="bg-white border border-gray-100 rounded-[28px] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.03)] flex gap-4 items-start mb-6">
+                <div className="p-3 bg-indigo-600 text-white rounded-2xl shrink-0 flex items-center justify-center shadow-md">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.07 6.07 0 00-4.248-5.74V4a2 2 0 10-3.504 0v1.26A6.07 6.07 0 006 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                   </svg>
                 </div>
-                <div className="space-y-0.5">
-                  <h2 className="text-xs font-black text-gray-900 uppercase tracking-tight flex items-center gap-1.5 pt-0.5">
+                <div className="space-y-1 mt-0.5">
+                  <h2 className="text-[11px] font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
                     Cara Terhubung Cepat
                     <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
                   </h2>
-                  <p className="text-[10px] font-bold text-gray-600 leading-normal uppercase">
-                    Arahkan kamera ponsel atau Google Lens ke kode QR di bawah untuk langsung tersambung otomatis tanpa mengetik password.
-                    Pindai Kode Untuk Terhubung
+                  <p className="text-[10px] font-bold text-gray-500 leading-relaxed uppercase">
+                    Arahkan kamera ponsel atau Google Lens ke kode QR di bawah untuk langsung tersambung otomatis.
                   </p>
                 </div>
               </div>
@@ -136,13 +135,13 @@ export default function WifiView() {
                   <div>
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Nama Jaringan</p>
                     {/* Style user yang diminta, netral dan clean */}
-                    <div className="bg-slate-50 py-3.5 px-4 rounded-2xl font-black text-gray-900 tracking-tight text-[15px]">
+                    <div className="bg-indigo-50/60 py-3.5 px-4 rounded-2xl border border-indigo-100 font-mono font-bold text-lg text-indigo-600 tracking-wider">
                       {wifiInfo.ssid}
                     </div>
                   </div>
 
                   <div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Kata Sandi</p>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Password</p>
                     {/* Style user yang diminta, contrasty and mono for passwrod */}
                     <div className="bg-indigo-50/60 py-3.5 px-4 rounded-2xl border border-indigo-100 font-mono font-bold text-lg text-indigo-600 tracking-wider">
                       {wifiInfo.password}

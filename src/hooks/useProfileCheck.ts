@@ -43,11 +43,13 @@ export function useProfileCheck() {
       setIsProfileComplete(userData?.is_profile_complete || false);
 
       // 3. Ambil data profil dari user_profiles
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('user_id', authUser.id)
-        .single();
+        .maybeSingle();
+      
+      if (profileError) throw profileError;
             
       const roomsData: any = userData?.rooms;
       const fetchedRoomNumber = Array.isArray(roomsData) 
@@ -55,8 +57,6 @@ export function useProfileCheck() {
           : roomsData?.room_number;
 
       // 4. GABUNGKAN SEMUA DATA 
-      // DIPERBAIKI: Mengubah urutan properti kustom ke baris paling bawah 
-      // agar nilainya aman dari overwrite spread operator database.
       setProfileData({
         ...profile,           
         ...userData,

@@ -86,21 +86,31 @@ export function useAdminData() {
   const createAccount = async (formData: any) => {
     setIsSubmitting(true);
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({ email: formData.email, password: 'Mutiara123', options: { data: { role: formData.role } } });
-      if (authError) throw authError;
-
-      if (authData?.user) {
-        const { error: userError } = await supabase.from('users').insert([{
-          id: authData.user.id, email: formData.email, role: formData.role, room_id: formData.kamar_id || null,
-          tanggal_masuk: formData.tanggal_masuk || null, tanggal_tagihan: formData.tanggal_tagihan || null,
-          biaya_sewa: formData.biaya_sewa ? Number(formData.biaya_sewa) : null, biaya_deposit: formData.biaya_deposit ? Number(formData.biaya_deposit) : null,
-          no_rek_pembayaran: formData.no_rek_pembayaran || null, nama_rek_pembayaran: formData.nama_rek_pembayaran || null, is_profile_complete: false
-        }]);
-        if (userError) throw userError;
-      }
+      // Hapus supabase.auth.signUp() dari sisi admin
+      // Langsung buat "draf" pengguna di tabel public.users
+      const { error: userError } = await supabase.from('users').insert([{
+        email: formData.email, 
+        role: formData.role, 
+        room_id: formData.kamar_id || null,
+        tanggal_masuk: formData.tanggal_masuk || null, 
+        tanggal_tagihan: formData.tanggal_tagihan || null,
+        biaya_sewa: formData.biaya_sewa ? Number(formData.biaya_sewa) : null, 
+        biaya_deposit: formData.biaya_deposit ? Number(formData.biaya_deposit) : null,
+        no_rek_pembayaran: formData.no_rek_pembayaran || null, 
+        nama_rek_pembayaran: formData.nama_rek_pembayaran || null, 
+        is_profile_complete: false,
+        status_akun: 'belum_aktif' // Pastikan status diset belum_aktif agar bisa dicek penghuni
+      }]);
+      
+      if (userError) throw userError;
+      
       await fetchData();
       return { success: true };
-    } catch (error: any) { return { success: false, message: error.message }; } finally { setIsSubmitting(false); }
+    } catch (error: any) { 
+      return { success: false, message: error.message }; 
+    } finally { 
+      setIsSubmitting(false); 
+    }
   };
 
   const updateUser = async (id: string, data: any) => {

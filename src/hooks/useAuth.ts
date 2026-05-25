@@ -7,7 +7,7 @@ export const useAuth = () => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // STEP 1: Cek apakah email terdaftar di sistem admin
+  // 1. Cek apakah email terdaftar di sistem admin
   const checkEmailEligibility = async (email: string) => {
     setLoading(true);
     setError(null);
@@ -30,7 +30,7 @@ export const useAuth = () => {
     }
   };
 
-  // STEP 2: Proses Pendaftaran (Aktivasi)
+  // 2. Proses Pendaftaran (Aktivasi)
   const registerNewTenant = async (email: string, password: string) => {
     setLoading(true);
     setError(null);
@@ -64,7 +64,7 @@ export const useAuth = () => {
     }
   };
 
-  // FUNGSI LOGIN: Handle Redirect setelah masuk
+  // 3. FUNGSI LOGIN: Handle Redirect setelah masuk
   const login = async (email: string, password: string) => {
     setLoading(true);
     setError(null);

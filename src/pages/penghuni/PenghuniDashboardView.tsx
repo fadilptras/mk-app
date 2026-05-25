@@ -1,12 +1,27 @@
 import { useNavigate } from 'react-router-dom';
 import { useProfileCheck } from '../../hooks/useProfileCheck';
+import { useTagihan } from '../../hooks/useTagihan';
 import AnnouncementSection from '../../components/penghuni/AnnouncementSection';
 
 export default function PenghuniDashboardView() {
   const navigate = useNavigate();
-  const { loading, user, profileData } = useProfileCheck();
+  
+  // Mengambil data profile dan tagihan
+  const { loading: profileLoading, user, profileData } = useProfileCheck();
+  const { tagihanAktif, riwayatTagihan, loading: tagihanLoading } = useTagihan();
 
-  if (loading) {
+  const isContractComplete = profileData?.is_contract_complete === true;
+
+  // Fungsi Formatter
+  const formatRupiah = (angka: number) => {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  if (profileLoading || tagihanLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#BFDDF0]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
@@ -71,7 +86,6 @@ export default function PenghuniDashboardView() {
               <button 
                 key={idx} 
                 onClick={() => navigate(menu.path)} 
-                /* Ubah bagian ini: mengganti ${menu.bg} dengan bg-white dan menyamakan border */
                 className="flex flex-col items-center gap-2.5 p-3 rounded-[16px] bg-white border border-gray-100 shadow-sm group active:scale-90 transition-all"
               >
                 <div className={`w-[48px] h-[48px] rounded-2xl bg-gradient-to-br ${menu.gradient} text-white shadow-lg flex items-center justify-center`}>
@@ -102,46 +116,101 @@ export default function PenghuniDashboardView() {
             <svg className="w-5 h-5 text-indigo-400 mr-2" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" /></svg>
           </button>
 
-          {/* CARD TAGIHAN */}
+          {/* CARD TAGIHAN DINAMIS */}
           <div className="bg-gradient-to-br from-indigo-900 via-indigo-800 to-violet-800 p-6 rounded-[32px] shadow-xl relative overflow-hidden text-white border border-indigo-500/20">
-             <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-             <div className="flex justify-between items-start mb-6 relative z-10">
-               <div><p className="text-[10px] font-black uppercase text-indigo-300 tracking-widest mb-1 flex items-center gap-1.5"><span className="w-2 h-2 bg-rose-400 rounded-full animate-pulse"></span>Tagihan Aktif</p><h4 className="text-base font-black tracking-wide uppercase">Periode Mei 2026</h4></div>
-               <div className="bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-xl text-[10px] font-black text-white border border-white/20 shadow-sm uppercase">Kamar A-01</div>
-             </div>
-             <div className="flex justify-between items-end relative z-10">
-               <div><p className="text-xs text-indigo-200 font-bold mb-0.5 uppercase tracking-tighter">Total Tagihan</p><p className="text-2xl font-black tracking-tighter">Rp 1.500.000</p></div>
-               <button onClick={() => navigate('/sewa')} className="bg-white text-indigo-700 text-[11px] font-black px-6 py-3 rounded-xl shadow-lg active:scale-95 transition-all">BAYAR SEKARANG</button>
-             </div>
+            <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+            
+            {!isContractComplete ? (
+              // State 1: Kontrak Belum Aktif
+              <div className="relative z-10">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-amber-300 tracking-widest mb-1">Perhatian</p>
+                    <h4 className="text-base font-black tracking-wide uppercase">Kontrak Belum Aktif</h4>
+                  </div>
+                </div>
+                <div className="flex justify-between items-end">
+                  <div>
+                    <p className="text-xs text-indigo-200 font-bold mb-0.5 leading-relaxed">Selesaikan kontrak sewa<br/>untuk melihat tagihan.</p>
+                  </div>
+                  <button onClick={() => navigate('/kontrak/perpanjang')} className="bg-amber-400 text-amber-900 text-[11px] font-black px-5 py-2.5 rounded-xl shadow-lg active:scale-95 transition-all">BUAT KONTRAK</button>
+                </div>
+              </div>
+            ) : tagihanAktif ? (
+              // State 2: Ada Tagihan Aktif (unpaid / pending)
+              <div className="relative z-10">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <p className="text-[10px] font-black uppercase text-indigo-300 tracking-widest mb-1 flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full ${tagihanAktif.status === 'pending' ? 'bg-amber-400' : 'bg-rose-400 animate-pulse'}`}></span>
+                      {tagihanAktif.status === 'pending' ? 'Menunggu Verifikasi' : 'Tagihan Aktif'}
+                    </p>
+                    <h4 className="text-base font-black tracking-wide uppercase">Periode {tagihanAktif.periode_tagihan}</h4>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-xl text-[10px] font-black text-white border border-white/20 shadow-sm uppercase">
+                    {profileData?.nomor_kamar || 'KAMAR KOST'}
+                  </div>
+                </div>
+                <div className="flex justify-between items-end">
+                  <div>
+                    <p className="text-xs text-indigo-200 font-bold mb-0.5 uppercase tracking-tighter">Total Tagihan</p>
+                    <p className="text-2xl font-black tracking-tighter">{formatRupiah(tagihanAktif.nominal_tagihan)}</p>
+                  </div>
+                  <button 
+                    onClick={() => navigate('/sewa')} 
+                    className={`${tagihanAktif.status === 'pending' ? 'bg-white/20 text-white' : 'bg-white text-indigo-700'} text-[11px] font-black px-6 py-3 rounded-xl shadow-lg active:scale-95 transition-all uppercase`}
+                  >
+                    {tagihanAktif.status === 'pending' ? 'CEK STATUS' : 'BAYAR SEKARANG'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              // State 3: Semua Tagihan Lunas
+              <div className="relative z-10 text-center py-2">
+                <div className="w-12 h-12 bg-white/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                </div>
+                <h4 className="text-sm font-black tracking-wide uppercase text-white mb-1">Semua Tagihan Lunas</h4>
+                <p className="text-xs text-indigo-200 font-bold">Tidak ada tagihan yang perlu dibayar saat ini.</p>
+              </div>
+            )}
           </div>
 
-          {/* AKTIVITAS TERAKHIR */}
+          {/* AKTIVITAS TERAKHIR DINAMIS */}
           <div className="bg-white p-5 rounded-[28px] border border-gray-100 space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="font-black text-sm text-gray-800 uppercase tracking-tight">Aktivitas Terakhir</h3>
-              <button onClick={() => navigate('/sewa')} className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg uppercase tracking-wider">Semua</button>
+              <button onClick={() => navigate('/sewa')} className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg uppercase tracking-wider hover:bg-indigo-100 transition-colors">Semua</button>
             </div>
             <div className="space-y-3">
-              {[
-                { title: 'Sewa Kamar April', date: '05 Mei 2026', amount: 'Rp 1.500.000', status: 'Lunas', iconBg: 'bg-emerald-100', iconColor: 'text-emerald-600', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
-                { title: 'Pembelian Token', date: '02 Mei 2026', amount: 'Rp 100.000', status: 'Lunas', iconBg: 'bg-emerald-100', iconColor: 'text-emerald-600', icon: 'M13 10V3L4 14h7v7l9-11h-7z' }
-              ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-2xl border border-transparent transition-colors hover:bg-gray-50">
-                  <div className="flex items-center gap-3.5">
-                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${item.iconBg} ${item.iconColor}`}>
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d={item.icon} /></svg>
+              {riwayatTagihan.length > 0 ? (
+                // Menampilkan maksimal 3 riwayat terbaru
+                riwayatTagihan.slice(0, 3).map((item) => (
+                  <div 
+                    key={item.id} 
+                    onClick={() => navigate(`/sewa/detail/${item.id}`)} 
+                    className="flex items-center justify-between p-3 rounded-2xl border border-transparent transition-colors hover:bg-gray-50 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-emerald-100 text-emerald-600">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-black text-gray-800 uppercase">Sewa {item.periode_tagihan}</p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase">{formatDate(item.updated_at || item.created_at)}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[11px] font-black text-gray-800 uppercase">{item.title}</p>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase">{item.date}</p>
+                    <div className="text-right">
+                      <p className="text-xs font-black text-gray-800">{formatRupiah(item.nominal_tagihan)}</p>
+                      <p className="text-[9px] font-black uppercase text-emerald-500 tracking-wider mt-0.5">Lunas</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs font-black text-gray-800">{item.amount}</p>
-                    <p className="text-[9px] font-black uppercase text-emerald-500 tracking-wider mt-0.5">{item.status}</p>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-5">
+                  <p className="text-[11px] text-gray-400 italic">Belum ada riwayat aktivitas.</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
 

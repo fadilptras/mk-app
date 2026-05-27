@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../../lib/supabase";
+import { generateRefID } from "../../../utils/formatId";
 
 interface Report {
   id: string;
@@ -158,7 +159,6 @@ export default function LaporView() {
       <div className="max-w-md mx-auto relative min-h-screen bg-[#BFDDF0]">
         {/* Header Biru Premium */}
         <div className="bg-indigo-600 px-5 py-4 flex items-center gap-4 sticky top-0 z-20 shadow-md">
-          {/* Diperbaiki: Ditambahkan aria-label */}
           <button
             onClick={() => navigate("/dashboard")}
             aria-label="Kembali ke Dashboard"
@@ -171,7 +171,7 @@ export default function LaporView() {
               strokeWidth="2.5"
               viewBox="0 0 24 24"
             >
-              <path d="M15 19l-7-7 7-7" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <h1 className="text-lg font-black text-white tracking-tight">
@@ -263,7 +263,6 @@ export default function LaporView() {
 
                 <form onSubmit={handleSubmit} className="space-y-5 mt-2">
                   <div>
-                    {/* Diperbaiki: Ditambahkan htmlFor */}
                     <label
                       htmlFor="kategori_laporan"
                       className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1"
@@ -271,7 +270,6 @@ export default function LaporView() {
                       Pilih Kategori Masalah
                     </label>
                     <div className="relative">
-                      {/* Diperbaiki: Ditambahkan id */}
                       <select
                         id="kategori_laporan"
                         className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-black text-gray-800 tracking-tight focus:border-indigo-400 outline-none appearance-none cursor-pointer"
@@ -313,14 +311,12 @@ export default function LaporView() {
                   </div>
 
                   <div>
-                    {/* Diperbaiki: Ditambahkan htmlFor */}
                     <label
                       htmlFor="deskripsi_laporan"
                       className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1"
                     >
                       Deskripsi Kendala secara Detail
                     </label>
-                    {/* Diperbaiki: Ditambahkan id */}
                     <textarea
                       id="deskripsi_laporan"
                       required
@@ -388,7 +384,12 @@ export default function LaporView() {
                 </div>
               ) : history.length === 0 ? (
                 <div className="text-center p-10 bg-white rounded-3xl border border-gray-100 shadow-sm">
-                  <span className="text-2xl mb-2 block">📋</span>
+                  {/* PENGGANTIAN EMOJI CLIPBOARD DENGAN SVG PROFESIONAL */}
+                  <div className="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                    </svg>
+                  </div>
                   <p className="text-[11px] font-black text-gray-400 uppercase leading-normal">
                     Belum ada riwayat pengaduan keluhan.
                   </p>
@@ -400,20 +401,27 @@ export default function LaporView() {
                       key={report.id}
                       className="bg-white rounded-[24px] p-5 border border-gray-100 shadow-[0_6px_25px_rgba(0,0,0,0.01)] flex flex-col space-y-3 relative overflow-hidden"
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-[11px] font-black text-gray-900 uppercase tracking-tight truncate max-w-[70%]">
-                          {report.category}
-                        </span>
+                      {/* PENAMBAHAN ID REFERENSI LAPORAN */}
+                      <div className="flex items-center justify-between pb-2 border-b border-gray-50">
                         {getStatusBadge(report.status)}
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                          {generateRefID('laporan', report.id, report.created_at)}
+                        </span>
                       </div>
 
-                      <p className="text-[11px] font-bold text-gray-400 leading-relaxed uppercase">
+                      <div className="flex items-center justify-between gap-2 pt-1">
+                        <span className="text-[11px] font-black text-gray-900 uppercase tracking-tight truncate max-w-[90%]">
+                          {report.category}
+                        </span>
+                      </div>
+
+                      <p className="text-[11px] font-bold text-gray-500 leading-relaxed uppercase">
                         {report.description}
                       </p>
 
                       <div className="pt-2.5 border-t border-gray-50 flex items-center justify-between text-[9px] font-black text-gray-400 uppercase tracking-wider">
                         <span>Tanggal Pengajuan</span>
-                        <span className="text-gray-500 font-bold">
+                        <span className="text-gray-600 font-bold">
                           {formatDate(report.created_at)}
                         </span>
                       </div>

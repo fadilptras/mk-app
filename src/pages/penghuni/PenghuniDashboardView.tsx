@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
 import { useProfileCheck } from '../../hooks/useProfileCheck';
 import { useTagihan } from '../../hooks/useTagihan';
 import AnnouncementSection from '../../components/penghuni/AnnouncementSection';
@@ -6,13 +8,41 @@ import AnnouncementSection from '../../components/penghuni/AnnouncementSection';
 export default function PenghuniDashboardView() {
   const navigate = useNavigate();
   
-  // Mengambil data profile dan tagihan
   const { loading: profileLoading, user, profileData } = useProfileCheck();
   const { tagihanAktif, riwayatTagihan, loading: tagihanLoading } = useTagihan();
+  
+  const [riwayatLaporan, setRiwayatLaporan] = useState<any[]>([]);
+  const [loadingLaporan, setLoadingLaporan] = useState(true);
 
   const isContractComplete = profileData?.is_contract_complete === true;
 
-  // Fungsi Formatter
+  // Fetch riwayat laporan
+  useEffect(() => {
+    const fetchLaporan = async () => {
+      if (!user) {
+        setLoadingLaporan(false);
+        return;
+      }
+      try {
+        const { data, error } = await supabase
+          .from('reports')
+          .select('id, category, status, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(3);
+
+        if (error) throw error;
+        setRiwayatLaporan(data || []);
+      } catch (error) {
+        console.error('Gagal mengambil laporan:', error);
+      } finally {
+        setLoadingLaporan(false);
+      }
+    };
+
+    fetchLaporan();
+  }, [user]);
+
   const formatRupiah = (angka: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
   };
@@ -21,7 +51,42 @@ export default function PenghuniDashboardView() {
     return new Date(dateString).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
-  if (profileLoading || tagihanLoading) {
+  // MENGGABUNGKAN DAN MENGURUTKAN AKTIVITAS
+  const getAllActivities = () => {
+    // 1. Format tagihan
+    const mappedTagihan = riwayatTagihan.map(t => ({
+      ...t,
+      activity_type: 'tagihan',
+      sort_date: new Date(t.updated_at || t.created_at).getTime()
+    }));
+
+    // 2. Format laporan
+    const mappedLaporan = riwayatLaporan.map(l => ({
+      ...l,
+      activity_type: 'laporan',
+      sort_date: new Date(l.created_at).getTime()
+    }));
+
+    // 3. Gabungkan dan urutkan dari yang terbaru, lalu ambil 3 teratas
+    const combined = [...mappedTagihan, ...mappedLaporan];
+    return combined.sort((a, b) => b.sort_date - a.sort_date).slice(0, 3);
+  };
+
+  const activities = getAllActivities();
+
+  // Helper status badge laporan
+  const getReportStatusText = (status: string) => {
+    switch (status.toUpperCase()) {
+      case 'PENDING': return { text: 'Menunggu', color: 'text-amber-500' };
+      case 'PROCESSING': 
+      case 'IN_PROGRESS': return { text: 'Diproses', color: 'text-blue-500' };
+      case 'RESOLVED': return { text: 'Selesai', color: 'text-emerald-500' };
+      case 'REJECTED': return { text: 'Ditolak', color: 'text-rose-500' };
+      default: return { text: status, color: 'text-gray-500' };
+    }
+  };
+
+  if (profileLoading || tagihanLoading || loadingLaporan) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#BFDDF0]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
@@ -121,7 +186,6 @@ export default function PenghuniDashboardView() {
             <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
             
             {!isContractComplete ? (
-              // State 1: Kontrak Belum Aktif
               <div className="relative z-10">
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -137,7 +201,6 @@ export default function PenghuniDashboardView() {
                 </div>
               </div>
             ) : tagihanAktif ? (
-              // State 2: Ada Tagihan Aktif (unpaid / pending)
               <div className="relative z-10">
                 <div className="flex justify-between items-start mb-6">
                   <div>
@@ -165,7 +228,6 @@ export default function PenghuniDashboardView() {
                 </div>
               </div>
             ) : (
-              // State 3: Semua Tagihan Lunas
               <div className="relative z-10 text-center py-2">
                 <div className="w-12 h-12 bg-white/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-3">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
@@ -176,34 +238,57 @@ export default function PenghuniDashboardView() {
             )}
           </div>
 
-          {/* AKTIVITAS TERAKHIR DINAMIS */}
+          {/* AKTIVITAS TERAKHIR GABUNGAN DINAMIS */}
           <div className="bg-white p-5 rounded-[28px] border border-gray-100 space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="font-black text-sm text-gray-800 uppercase tracking-tight">Aktivitas Terakhir</h3>
-              <button onClick={() => navigate('/sewa')} className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg uppercase tracking-wider hover:bg-indigo-100 transition-colors">Semua</button>
-            </div>
+            <h3 className="font-black text-sm text-gray-800 uppercase tracking-tight">Aktivitas Terakhir</h3>
+            
             <div className="space-y-3">
-              {riwayatTagihan.length > 0 ? (
-                // Menampilkan maksimal 3 riwayat terbaru
-                riwayatTagihan.slice(0, 3).map((item) => (
-                  <div 
-                    key={item.id} 
-                    onClick={() => navigate(`/sewa/detail/${item.id}`)} 
-                    className="flex items-center justify-between p-3 rounded-2xl border border-transparent transition-colors hover:bg-gray-50 cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3.5">
-                      <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-emerald-100 text-emerald-600">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              {activities.length > 0 ? (
+                activities.map((item, index) => (
+                  <div key={index}>
+                    {item.activity_type === 'tagihan' ? (
+                      // DESAIN AKTIVITAS TAGIHAN
+                      <div 
+                        onClick={() => navigate(`/sewa/detail/${item.id}`)} 
+                        className="flex items-center justify-between p-3 rounded-2xl border border-transparent transition-colors hover:bg-gray-50 cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-emerald-100 text-emerald-600">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-black text-gray-800 uppercase">Sewa {item.periode_tagihan}</p>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">{formatDate(item.updated_at || item.created_at)}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-black text-gray-800">{formatRupiah(item.nominal_tagihan)}</p>
+                          <p className="text-[9px] font-black uppercase text-emerald-500 tracking-wider mt-1">Lunas</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-[11px] font-black text-gray-800 uppercase">Sewa {item.periode_tagihan}</p>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase">{formatDate(item.updated_at || item.created_at)}</p>
+                    ) : (
+                      // DESAIN AKTIVITAS LAPORAN
+                      <div 
+                        onClick={() => navigate('/lapor')} 
+                        className="flex items-center justify-between p-3 rounded-2xl border border-transparent transition-colors hover:bg-gray-50 cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-11 h-11 rounded-xl flex items-center justify-center bg-blue-100 text-blue-600">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z" /></svg>
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-black text-gray-800 uppercase max-w-[120px] truncate">Lap. {item.category}</p>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">{formatDate(item.created_at)}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-black text-gray-800">Pengaduan</p>
+                          <p className={`text-[9px] font-black uppercase tracking-wider mt-1 ${getReportStatusText(item.status).color}`}>
+                            {getReportStatusText(item.status).text}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs font-black text-gray-800">{formatRupiah(item.nominal_tagihan)}</p>
-                      <p className="text-[9px] font-black uppercase text-emerald-500 tracking-wider mt-0.5">Lunas</p>
-                    </div>
+                    )}
                   </div>
                 ))
               ) : (

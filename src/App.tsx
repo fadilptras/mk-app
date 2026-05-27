@@ -1,18 +1,24 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import MobileLayout from "./components/layout/MobileLayout";
-import AuthPage from "./pages/penghuni/auth/AuthPage";
-import ProfileEditView from "./pages/penghuni/profile/ProfileEditView";
-import PenghuniDashboardView from "./pages/penghuni/PenghuniDashboardView";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
-// Import Halaman Fitur Penghuni
+import MobileLayout from "./components/layout/MobileLayout";
+import AuthPage from "./pages/penghuni/auth/AuthPage";
+
+// Penghuni / user
+import ProfileEditView from "./pages/penghuni/profile/ProfileEditView";
+import PenghuniDashboardView from "./pages/penghuni/PenghuniDashboardView";
 import SewaView from "./pages/penghuni/sewa/SewaView";
 import WifiView from "./pages/penghuni/wifi/WifiView";
 import ListrikView from "./pages/penghuni/listrik/ListrikView";
 import LaporView from "./pages/penghuni/lapor/LaporView";
 import NotificationView from "./pages/penghuni/NotificationView";
 import PeraturanView from "./pages/penghuni/peraturan/PeraturanView";
+import KontrakDashboardView from "./pages/penghuni/kontrak/KontrakDashboardView";
+import FormKontrakView from "./pages/penghuni/kontrak/FormKontrakView";
+import FormBayarView from "./pages/penghuni/sewa/FormBayarView";
+import DetailBayarView from "./pages/penghuni/sewa/DetailRiwayatPembayaran";
 
+// Admin
 import AdminLayout from "./components/layout/AdminLayout";
 import AdminDashboardView from "./pages/admin/AdminDashboardView";
 import KelolaKamarView from "./pages/admin/KelolaKamarView";
@@ -20,11 +26,11 @@ import KelolaPenghuniView from "./pages/admin/KelolaPenghuniView";
 import SetListrikView from "./pages/admin/SetListrikView";
 import SetWifiView from "./pages/admin/SetWifiView";
 import KelolaLaporanView from "./pages/admin/KelolaLaporanView";
-// import KontrakView from './pages/penghuni/KontrakView';
-import KontrakDashboardView from "./pages/penghuni/kontrak/KontrakDashboardView";
-import FormKontrakView from "./pages/penghuni/kontrak/FormKontrakView";
-import FormBayarView from "./pages/penghuni/sewa/FormBayarView";
-import DetailBayarView from "./pages/penghuni/sewa/DetailRiwayatPembayaran";
+import KelolaTagihanView from './pages/admin/KelolaTagihanView';
+import KelolaKontrakView from './pages/admin/KelolaKontrakView';
+import DetailKontrakView from './pages/admin/DetailKontrakView';
+import DetailTagihanView from './pages/admin/DetailTagihanView';
+import KirimPengumumanView from "./pages/admin/KirimPengumumanView";
 
 function App() {
   return (
@@ -36,35 +42,43 @@ function App() {
 
           {/* Rute Terproteksi (Harus Login) */}
           <Route element={<ProtectedRoute />}>
+            
+            {/* ====== ROUTE PENGHUNI ====== */}
             <Route path="/profile/edit" element={<ProfileEditView />} />
             <Route path="/dashboard" element={<PenghuniDashboardView />} />
-            <Route path="/admin" element={<AdminDashboardView />} />
-
-            {/* Rute Fitur Mutiara Kost */}
             <Route path="/sewa" element={<SewaView />} />
             <Route path="/wifi" element={<WifiView />} />
             <Route path="/listrik" element={<ListrikView />} />
             <Route path="/lapor" element={<LaporView />} />
             <Route path="/notifications" element={<NotificationView />} />
             <Route path="/peraturan" element={<PeraturanView />} />
-            {/* <Route path="/kontrak" element={<KontrakView />} /> */}
             <Route path="/kontrak" element={<KontrakDashboardView />} />
             <Route path="/kontrak/perpanjang" element={<FormKontrakView />} />
             <Route path="/sewa/bayar" element={<FormBayarView />} />
             <Route path="/sewa/detail/:id" element={<DetailBayarView />} />
+
+            {/* ====== ROUTE ADMIN ====== */}
+            {/* Hapus Route /admin mandiri, pindahkan semua ke dalam AdminLayout */}
+            <Route path="/admin" element={<AdminLayout />}>
+              {/* index = default route saat user akses /admin */}
+              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route path="dashboard" element={<AdminDashboardView />} />
+              <Route path="kamar" element={<KelolaKamarView />} />
+              <Route path="penghuni" element={<KelolaPenghuniView />} />
+              <Route path="listrik" element={<SetListrikView />} />
+              <Route path="wifi" element={<SetWifiView />} />
+              <Route path="laporan" element={<KelolaLaporanView />} />
+              <Route path="tagihan" element={<KelolaTagihanView />} />
+              <Route path="kontrak" element={<KelolaKontrakView />} />
+              <Route path="kontrak/:id" element={<DetailKontrakView />} />
+              <Route path="tagihan/:id" element={<DetailTagihanView />} />
+              <Route path="pengumuman" element={<KirimPengumumanView />} />
+            </Route>
+
           </Route>
 
+          {/* Catch-all route (404 Fallback) */}
           <Route path="*" element={<Navigate to="/auth" replace />} />
-
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboardView />} />
-            <Route path="dashboard" element={<AdminDashboardView />} />
-            <Route path="kamar" element={<KelolaKamarView />} />
-            <Route path="penghuni" element={<KelolaPenghuniView />} />
-            <Route path="listrik" element={<SetListrikView />} />
-            <Route path="wifi" element={<SetWifiView />} />
-            <Route path="laporan" element={<KelolaLaporanView />} />
-          </Route>
         </Routes>
       </MobileLayout>
     </BrowserRouter>

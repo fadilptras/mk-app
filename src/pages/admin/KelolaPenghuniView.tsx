@@ -1,185 +1,354 @@
-import { useState } from 'react';
-import { useAdminData } from '../../hooks/useAdminData';
+import { useState, useMemo } from 'react';
+import { useAdminPenghuni, type PenghuniAdmin } from '../../hooks/useAdminPenghuni';
+import { formatDate } from '../../utils/formatters';
+import toast, { Toaster } from 'react-hot-toast';
+import { Search, Filter, User, Info, Edit, XCircle, Save, Phone, CreditCard, CalendarDays, FileWarning } from 'lucide-react';
 
 export default function KelolaPenghuniView() {
-  const { penghuni, rooms, loading, isSubmitting, createAccount, updateUser, deleteUser } = useAdminData();
-  const [showForm, setShowForm] = useState(false);
+  const { penghuni, rooms, loading, isUpdating, updatePenghuni } = useAdminPenghuni();
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterRoom, setFilterRoom] = useState('all');
 
+  const [selectedUser, setSelectedUser] = useState<PenghuniAdmin | null>(null);
+  const [editUser, setEditUser] = useState<PenghuniAdmin | null>(null);
   const [formData, setFormData] = useState({
-    email: '', role: 'penghuni', kamar_id: '', tanggal_masuk: '', tanggal_tagihan: '',
-    biaya_sewa: '', biaya_deposit: '', no_rek_pembayaran: '', nama_rek_pembayaran: ''
+    status_akun: '',
+    tanggal_masuk: '',
+    tanggal_tagihan: '',
+    no_rek_pembayaran: '',
+    nama_rek_pembayaran: '',
+    room_id: ''
   });
 
-  const [editingUser, setEditingUser] = useState<string | null>(null);
-  const [editData, setEditData] = useState<any>({});
+  const filteredPenghuni = useMemo(() => {
+    return penghuni.filter((item) => {
+      // 1. Search Logic
+      const name = item.profile?.nama_lengkap?.toLowerCase() || '';
+      const email = item.email.toLowerCase();
+      const matchSearch = name.includes(searchQuery.toLowerCase()) || email.includes(searchQuery.toLowerCase());
 
-  const handleTambahAkun = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const result = await createAccount(formData);
-    if (result.success) {
-      alert('Akun berhasil dibuat!');
-      setShowForm(false);
-      setFormData({ email: '', role: 'penghuni', kamar_id: '', tanggal_masuk: '', tanggal_tagihan: '', biaya_sewa: '', biaya_deposit: '', no_rek_pembayaran: '', nama_rek_pembayaran: '' });
-    } else { alert(`Gagal mendaftar: ${result.message}`); }
-  };
+      // 2. Status Logic
+      let matchStatus = true;
+      if (filterStatus === 'aktif') matchStatus = item.status_akun === 'aktif';
+      if (filterStatus === 'incomplete') matchStatus = !item.is_profile_complete;
+      if (filterStatus === 'noroom') matchStatus = !item.room;
 
-  const handleDelete = async (id: string, email: string) => {
-    if (window.confirm(`Hapus permanen akun ${email}?\nData terkait (laporan dll) mungkin ikut terhapus jika terhubung.`)) {
-      const result = await deleteUser(id);
-      if (result.success) alert('Akun berhasil dihapus.');
-      else alert(`Gagal menghapus: ${result.message}`);
-    }
-  };
+      // 3. Room Logic
+      const matchRoom = filterRoom === 'all' || item.room?.room_number === filterRoom;
 
-  const openEditModal = (user: any) => {
-    setEditingUser(user.id);
-    setEditData({ 
-      room_id: user.room_id || '', role: user.role, tanggal_masuk: user.tanggal_masuk || '', tanggal_tagihan: user.tanggal_tagihan || '',
-      biaya_sewa: user.biaya_sewa || '', biaya_deposit: user.biaya_deposit || '', is_profile_complete: user.is_profile_complete
+      return matchSearch && matchStatus && matchRoom;
+    });
+  }, [penghuni, searchQuery, filterStatus, filterRoom]);
+
+  const handleOpenEdit = (user: PenghuniAdmin) => {
+    setEditUser(user);
+    setFormData({
+      status_akun: user.status_akun || 'belum_aktif',
+      tanggal_masuk: user.tanggal_masuk || '',
+      tanggal_tagihan: user.tanggal_tagihan || '',
+      no_rek_pembayaran: user.no_rek_pembayaran || '',
+      nama_rek_pembayaran: user.nama_rek_pembayaran || '',
+      room_id: user.room_id || ''
     });
   };
 
-  const handleSimpanEdit = async (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingUser) return;
-    const result = await updateUser(editingUser, editData);
-    if (result.success) { alert('Data penghuni diperbarui!'); setEditingUser(null); }
-    else { alert(`Gagal update: ${result.message}`); }
+    if (!editUser) return;
+
+    // Bersihkan payload dari empty string menjadi null agar DB rapi
+    const payload = {
+      status_akun: formData.status_akun,
+      tanggal_masuk: formData.tanggal_masuk || null,
+      tanggal_tagihan: formData.tanggal_tagihan || null,
+      no_rek_pembayaran: formData.no_rek_pembayaran || null,
+      nama_rek_pembayaran: formData.nama_rek_pembayaran || null,
+      room_id: formData.room_id || null
+    };
+
+    const success = await updatePenghuni(editUser.id, payload);
+    if (success) setEditUser(null);
   };
 
   return (
-    <div className="px-5 mt-6 space-y-6">
-      <button onClick={() => setShowForm(!showForm)} className={`w-full font-black py-3.5 rounded-xl text-xs uppercase tracking-wider shadow-sm transition-all ${showForm ? 'bg-slate-800 text-white' : 'bg-blue-600 text-white'}`}>
-        {showForm ? '← Lihat Daftar Penghuni' : '+ Daftarkan Akun Baru'}
-      </button>
+    <div className="px-5 mt-6 space-y-5 pb-10">
+      <Toaster position="top-center" />
+      
+      <div>
+        <h1 className="text-xl font-black text-[#0D2F5C] uppercase tracking-widest">Kelola Penghuni</h1>
+        <p className="text-[#7A93B5] text-xs font-medium mt-1">Data profil dan administrasi akun</p>
+      </div>
 
-      {showForm ? (
-        <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
-          <h3 className="font-black text-sm text-[#0D2F5C] uppercase tracking-tight">Registrasi Akun Baru</h3>
-          <form onSubmit={handleTambahAkun} className="space-y-4">
-            <div>
-              <label htmlFor="reg_email" className="text-[10px] font-black text-[#7A93B5] uppercase mb-1 block">Email Akun</label>
-              <input id="reg_email" type="email" placeholder="contoh@email.com" required className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold outline-none focus:border-blue-600" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="reg_role" className="text-[10px] font-black text-[#7A93B5] uppercase mb-1 block">Hak Akses</label>
-                <select id="reg_role" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold outline-none focus:border-blue-600" value={formData.role} onChange={(e) => setFormData({...formData, role: e.target.value})}>
-                  <option value="penghuni">Penghuni</option><option value="admin">Admin</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="reg_kamar" className="text-[10px] font-black text-[#7A93B5] uppercase mb-1 block">Pilih Kamar</label>
-                <select id="reg_kamar" disabled={formData.role === 'admin'} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold outline-none focus:border-blue-600 disabled:opacity-50" value={formData.kamar_id} onChange={(e) => setFormData({...formData, kamar_id: e.target.value})}>
-                  <option value="">-- Kosong --</option>
-                  {rooms.map((room) => (<option key={room.id} value={room.id}>Kamar {room.room_number}</option>))}
-                </select>
-              </div>
-            </div>
-
-            {formData.role === 'penghuni' && (
-              <>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label htmlFor="reg_tgl_masuk" className="text-[10px] font-black text-[#7A93B5] uppercase mb-1 block">Tgl Masuk</label>
-                    <input id="reg_tgl_masuk" type="date" required className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold outline-none focus:border-blue-600" value={formData.tanggal_masuk} onChange={(e) => setFormData({...formData, tanggal_masuk: e.target.value})} />
-                  </div>
-                  <div>
-                    <label htmlFor="reg_tgl_tagihan" className="text-[10px] font-black text-[#7A93B5] uppercase mb-1 block">Tgl Tagihan</label>
-                    <input id="reg_tgl_tagihan" type="date" required className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold outline-none focus:border-blue-600" value={formData.tanggal_tagihan} onChange={(e) => setFormData({...formData, tanggal_tagihan: e.target.value})} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label htmlFor="reg_biaya_sewa" className="text-[10px] font-black text-[#7A93B5] uppercase mb-1 block">Biaya Sewa</label>
-                    <input id="reg_biaya_sewa" type="number" placeholder="1500000" required className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold outline-none focus:border-blue-600" value={formData.biaya_sewa} onChange={(e) => setFormData({...formData, biaya_sewa: e.target.value})} />
-                  </div>
-                  <div>
-                    <label htmlFor="reg_biaya_deposit" className="text-[10px] font-black text-[#7A93B5] uppercase mb-1 block">Deposit</label>
-                    <input id="reg_biaya_deposit" type="number" placeholder="500000" required className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold outline-none focus:border-blue-600" value={formData.biaya_deposit} onChange={(e) => setFormData({...formData, biaya_deposit: e.target.value})} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label htmlFor="reg_no_rek" className="text-[10px] font-black text-[#7A93B5] uppercase mb-1 block">No Rekening</label>
-                    <input id="reg_no_rek" type="text" placeholder="No Rekening" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold outline-none focus:border-blue-600" value={formData.no_rek_pembayaran} onChange={(e) => setFormData({...formData, no_rek_pembayaran: e.target.value})} />
-                  </div>
-                  <div>
-                    <label htmlFor="reg_nama_rek" className="text-[10px] font-black text-[#7A93B5] uppercase mb-1 block">Atas Nama</label>
-                    <input id="reg_nama_rek" type="text" placeholder="Atas Nama" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold outline-none focus:border-blue-600" value={formData.nama_rek_pembayaran} onChange={(e) => setFormData({...formData, nama_rek_pembayaran: e.target.value})} />
-                  </div>
-                </div>
-              </>
-            )}
-            <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl mt-2 shadow-lg active:scale-95 transition-all hover:bg-blue-700">
-              {isSubmitting ? 'MENYIMPAN DATA...' : 'KONFIRMASI & BUAT AKUN'}
-            </button>
-          </form>
+      {/* Filter & Search Bar */}
+      <div className="bg-white p-4 rounded-3xl shadow-[0_4px_20px_rgba(13,47,92,0.05)] border border-slate-100 flex flex-col md:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+          <input 
+            type="text" 
+            placeholder="Cari nama atau email penghuni..." 
+            className="w-full pl-11 pr-4 py-3.5 bg-slate-50 rounded-2xl border-none text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none transition-all placeholder:text-slate-400 text-slate-700"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
-      ) : (
-        <div className="space-y-3">
-          <h3 className="font-black text-sm text-[#0D2F5C] uppercase tracking-tight pl-1">Akun Terdaftar ({penghuni.length})</h3>
-          {loading ? ( <p className="text-center text-xs py-10 text-slate-400">Loading...</p> ) : (
-            penghuni.map((p) => {
-              const userRoom = rooms.find(r => r.id === p.room_id);
-              return (
-                <div key={p.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center font-black">
-                        {userRoom?.room_number || (p.role === 'admin' ? 'ADM' : '--')}
-                      </div>
-                      <div>
-                        <p className="text-xs font-black text-[#0D2F5C] truncate max-w-[150px]">{p.email}</p>
-                        <p className="text-[9px] font-bold text-[#7A93B5] uppercase mt-0.5">{p.role}</p>
-                      </div>
-                    </div>
-                    <div className={`px-2 py-1 rounded text-[9px] font-black uppercase ${p.is_profile_complete ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'}`}>
-                      {p.is_profile_complete ? 'Lengkap' : 'Pending'}
-                    </div>
+        <div className="flex gap-3 md:w-auto">
+          <div className="relative flex-1 md:w-48">
+            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+            <select 
+              className="w-full pl-11 pr-4 py-3.5 bg-slate-50 rounded-2xl border-none text-xs font-black uppercase tracking-widest focus:ring-2 focus:ring-blue-500 outline-none appearance-none cursor-pointer text-slate-600"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <option value="all">Semua Status</option>
+              <option value="aktif">Akun Aktif</option>
+              <option value="incomplete">Profil Belum Lengkap</option>
+              <option value="noroom">Tanpa Kamar</option>
+            </select>
+          </div>
+          <div className="relative flex-1 md:w-40">
+            <select 
+              className="w-full px-4 py-3.5 bg-slate-50 rounded-2xl border-none text-xs font-black uppercase tracking-widest focus:ring-2 focus:ring-blue-500 outline-none appearance-none cursor-pointer text-slate-600"
+              value={filterRoom}
+              onChange={(e) => setFilterRoom(e.target.value)}
+            >
+              <option value="all">Semua Kamar</option>
+              {rooms.map(r => (
+                <option key={r.id} value={r.room_number}>Kamar {r.room_number}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Grid Penghuni */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {loading ? (
+          <div className="col-span-full text-center py-10">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0D2F5C] mx-auto mb-3"></div>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Memuat Penghuni...</p>
+          </div>
+        ) : filteredPenghuni.length === 0 ? (
+          <div className="col-span-full bg-white p-8 rounded-3xl border border-slate-100 shadow-sm text-center">
+            <p className="text-slate-400 text-sm font-bold">Tidak ada penghuni yang sesuai filter.</p>
+          </div>
+        ) : (
+          filteredPenghuni.map((user) => (
+            <div key={user.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-slate-100 border-2 border-white shadow-sm overflow-hidden shrink-0">
+                  {user.profile?.foto_diri ? (
+                    <img src={user.profile.foto_diri} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-400"><User className="w-6 h-6" /></div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-black text-[#0D2F5C] truncate">
+                    {user.profile?.nama_lengkap || 'Belum Isi Profil'}
+                  </p>
+                  <p className="text-[10px] font-bold text-slate-400 truncate">{user.email}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border ${user.status_akun === 'aktif' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
+                    {user.status_akun}
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 p-3 rounded-xl flex justify-between items-center border border-slate-100">
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Kamar</p>
+                  <p className="text-xs font-bold text-slate-700">{user.room ? user.room.room_number : 'Belum Diatur'}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Nunggak</p>
+                  <p className={`text-xs font-black ${user.unpaid_bills > 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                    {user.unpaid_bills} Bulan
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button 
+                  onClick={() => setSelectedUser(user)}
+                  className="py-2.5 bg-slate-50 text-slate-600 hover:bg-[#0D2F5C] hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5"
+                >
+                  <Info className="w-3.5 h-3.5" /> Detail
+                </button>
+                <button 
+                  onClick={() => handleOpenEdit(user)}
+                  className="py-2.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5"
+                >
+                  <Edit className="w-3.5 h-3.5" /> Edit Admin
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* MODAL 1: DETAIL LENGKAP */}
+      {selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-[#0D2F5C] text-white">
+              <h2 className="text-sm font-black uppercase tracking-widest">Detail Penghuni</h2>
+              <button title="Tutup Modal" aria-label="Tutup" onClick={() => setSelectedUser(null)} className="text-white/70 hover:text-white">
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-5 overflow-y-auto space-y-5">
+              {/* Info KTP */}
+              <div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5"><FileWarning className="w-3.5 h-3.5" /> Foto KTP</p>
+                <div className="bg-slate-100 rounded-2xl h-40 flex items-center justify-center overflow-hidden">
+                  {selectedUser.profile?.foto_ktp ? (
+                    <img src={selectedUser.profile.foto_ktp} alt="KTP" className="w-full h-full object-cover" />
+                  ) : (
+                    <p className="text-xs font-bold text-slate-400 uppercase">Belum Upload KTP</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Data Diri */}
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Nama Lengkap</p>
+                  <p className="font-bold text-sm text-slate-800">{selectedUser.profile?.nama_lengkap || '-'}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">NIK</p>
+                    <p className="font-bold text-xs text-slate-800">{selectedUser.profile?.nik || '-'}</p>
                   </div>
-                  <div className="flex gap-2 mt-4 pt-4 border-t border-slate-50">
-                    <button onClick={() => openEditModal(p)} className="flex-1 bg-slate-50 text-slate-600 py-1.5 rounded-lg text-[9px] font-black tracking-widest hover:bg-slate-100">EDIT</button>
-                    <button onClick={() => handleDelete(p.id, p.email)} className="flex-1 bg-rose-50 text-rose-600 py-1.5 rounded-lg text-[9px] font-black tracking-widest hover:bg-rose-100">HAPUS</button>
+                  <div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Jenis Kelamin</p>
+                    <p className="font-bold text-xs text-slate-800 capitalize">{selectedUser.profile?.jenis_kelamin || '-'}</p>
                   </div>
                 </div>
-              );
-            })
-          )}
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">No. WhatsApp</p>
+                  <p className="font-bold text-sm text-blue-600 flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5" /> {selectedUser.profile?.no_whatsapp || '-'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Data Administrasi Kost */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white border border-slate-200 p-3 rounded-xl shadow-sm">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><CalendarDays className="w-3 h-3" /> Tgl Masuk</p>
+                  <p className="font-bold text-xs text-slate-700">{formatDate(selectedUser.tanggal_masuk)}</p>
+                </div>
+                <div className="bg-white border border-slate-200 p-3 rounded-xl shadow-sm">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><CreditCard className="w-3 h-3" /> Siklus Tagihan</p>
+                  <p className="font-bold text-xs text-slate-700">Tgl {selectedUser.tanggal_tagihan || '-'} / bulan</p>
+                </div>
+                <div className="col-span-2 bg-emerald-50 border border-emerald-100 p-3 rounded-xl">
+                  <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1">Status Kontrak</p>
+                  <p className="font-black text-emerald-800 text-sm">
+                    {selectedUser.active_contract ? 'Memiliki Kontrak Aktif' : 'Tidak Ada Kontrak Aktif'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+              <button onClick={() => setSelectedUser(null)} className="px-6 py-2.5 rounded-xl font-black text-white bg-[#0D2F5C] hover:bg-blue-900 transition-colors uppercase tracking-widest text-[10px]">
+                Tutup Profil
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* --- MODAL EDIT PENGHUNI --- */}
-      {editingUser && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-sm rounded-[32px] p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-black text-[#0D2F5C]">Edit Data Penghuni</h2>
-              {/* Diperbaiki: Menambahkan aria-label */}
-              <button onClick={() => setEditingUser(null)} aria-label="Tutup Modal" className="text-slate-400 hover:text-rose-500">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+      {/* MODAL 2: EDIT DATA ADMIN */}
+      {editUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-blue-600 text-white">
+              <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2"><Edit className="w-4 h-4" /> Edit Data Admin</h2>
+              <button title="Batal" aria-label="Batal" onClick={() => setEditUser(null)} className="text-white/70 hover:text-white">
+                <XCircle className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleSimpanEdit} className="space-y-4">
-              <div>
-                {/* Diperbaiki: Menambahkan htmlFor, id */}
-                <label htmlFor="edit_kamar" className="text-[10px] font-black text-[#7A93B5] uppercase mb-1 block">Pindah Kamar</label>
-                <select id="edit_kamar" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold outline-none focus:border-blue-600" value={editData.room_id} onChange={(e) => setEditData({...editData, room_id: e.target.value})}>
-                  <option value="">-- Tidak Ada / Hapus Kamar --</option>
-                  {rooms.map((room) => (<option key={room.id} value={room.id}>Kamar {room.room_number}</option>))}
-                </select>
+            
+            <form onSubmit={handleSaveEdit}>
+              <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div className="bg-blue-50 text-blue-800 p-3 rounded-xl text-xs font-medium">
+                  Mengubah data untuk: <strong>{editUser.email}</strong>
+                </div>
+
+                <div>
+                  <label className="block text-slate-500 uppercase tracking-widest text-[10px] font-black mb-1.5">Status Akun</label>
+                  <select 
+                    className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-bold"
+                    value={formData.status_akun} onChange={(e) => setFormData({...formData, status_akun: e.target.value})}
+                  >
+                    <option value="belum_aktif">Belum Aktif</option>
+                    <option value="aktif">Aktif</option>
+                    <option value="non_aktif">Non Aktif / Keluar</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-500 uppercase tracking-widest text-[10px] font-black mb-1.5">Alokasi Kamar</label>
+                  <select 
+                    className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-bold"
+                    value={formData.room_id} onChange={(e) => setFormData({...formData, room_id: e.target.value})}
+                  >
+                    <option value="">-- Cabut Kamar --</option>
+                    {rooms.map(r => <option key={r.id} value={r.id}>Kamar {r.room_number}</option>)}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-500 uppercase tracking-widest text-[10px] font-black mb-1.5">Tgl Masuk</label>
+                    <input 
+                      type="date" 
+                      className="w-full px-3 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold"
+                      value={formData.tanggal_masuk} onChange={(e) => setFormData({...formData, tanggal_masuk: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 uppercase tracking-widest text-[10px] font-black mb-1.5">Tgl Tagihan</label>
+                    <input 
+                      type="date" 
+                      className="w-full px-3 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold"
+                      value={formData.tanggal_tagihan} onChange={(e) => setFormData({...formData, tanggal_tagihan: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <p className="text-[#0D2F5C] font-black text-xs uppercase tracking-widest border-b border-slate-100 pb-1 mb-2">Info Rekening Pembayaran</p>
+                  <div className="space-y-3">
+                    <input 
+                      type="text" placeholder="No Rekening..."
+                      className="w-full px-4 py-2.5 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium"
+                      value={formData.no_rek_pembayaran} onChange={(e) => setFormData({...formData, no_rek_pembayaran: e.target.value})}
+                    />
+                    <input 
+                      type="text" placeholder="Atas Nama..."
+                      className="w-full px-4 py-2.5 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium"
+                      value={formData.nama_rek_pembayaran} onChange={(e) => setFormData({...formData, nama_rek_pembayaran: e.target.value})}
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                {/* Diperbaiki: Menambahkan htmlFor, id, placeholder */}
-                <label htmlFor="edit_biaya_sewa" className="text-[10px] font-black text-[#7A93B5] uppercase mb-1 block">Update Biaya Sewa (Rp)</label>
-                <input id="edit_biaya_sewa" type="number" placeholder="Contoh: 1500000" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold outline-none focus:border-blue-600" value={editData.biaya_sewa} onChange={(e) => setEditData({...editData, biaya_sewa: Number(e.target.value)})} />
+
+              <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-2">
+                <button type="button" onClick={() => setEditUser(null)} className="px-5 py-2.5 rounded-xl font-black text-slate-500 hover:bg-slate-200 uppercase tracking-widest text-[10px]">
+                  Batal
+                </button>
+                <button type="submit" disabled={isUpdating} className="px-5 py-2.5 rounded-xl font-black text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-200 uppercase tracking-widest text-[10px] flex items-center gap-1.5 disabled:opacity-50">
+                  <Save className="w-3.5 h-3.5" /> {isUpdating ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </button>
               </div>
-              <div className="flex items-center gap-3 bg-orange-50 p-3 rounded-xl border border-orange-100 mt-2">
-                <input type="checkbox" id="reset_profile" checked={!editData.is_profile_complete} onChange={(e) => setEditData({...editData, is_profile_complete: !e.target.checked})} className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500" />
-                <label htmlFor="reset_profile" className="text-xs font-bold text-orange-800">Paksa Reset Status Profil (Meminta user isi ulang data diri)</label>
-              </div>
-              <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl mt-2 active:scale-95 transition-all">SIMPAN PERUBAHAN</button>
             </form>
           </div>
         </div>

@@ -1,15 +1,13 @@
-// src/hooks/useKontrak.ts
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useProfileCheck } from './useProfileCheck';
 
 export const useKontrak = () => {
-    const { user, profileData } = useProfileCheck();
+    const { user, profileData, refreshProfile } = useProfileCheck();
     const [loading, setLoading] = useState(true);
     const [activeContract, setActiveContract] = useState<any>(null);
     const [contractHistory, setContractHistory] = useState<any[]>([]);
 
-    // Logika penentuan jenis sewa (Baru vs Perpanjang)
     const jenisKontrakOtomatis = profileData?.is_contract_complete ? 'perpanjang' : 'baru';
 
     const fetchCurrentContract = useCallback(async () => {
@@ -20,18 +18,49 @@ export const useKontrak = () => {
         try {
             const { data, error } = await supabase
                 .from('contract')
-                .select('*') // <--- DIPERBAIKI: Hapus join ke approver_id yang menyebabkan error
+                .select('*')
                 .eq('user_id', user.id)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
 
             if (data && data.length > 0) {
-                // Cari kontrak yang berstatus aktif atau menunggu persetujuan
-                const active = data.find(c => c.status === 'menunggu_persetujuan' || c.status === 'aktif');
-                // Sisa kontrak lainnya masuk ke history
-                const history = data.filter(c => c.id !== active?.id);
+                // Ambil tanggal hari ini dan reset jamnya ke 00:00:00 untuk akurasi perbandingan
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
 
+                // 1. CARI KONTRAK AKTIF
+                const active = data.find(c => {
+                    if (c.status === 'menunggu_persetujuan') return true;
+                    if (c.status === 'aktif') {
+                        const akhirSewa = new Date(c.akhir_sewa);
+                        akhirSewa.setHours(0, 0, 0, 0);
+                        // Masih aktif jika tanggal akhir sewa >= hari ini
+                        return akhirSewa >= today;
+                    }
+                    return false;
+                });
+
+                // 2. KUMPULKAN RIWAYAT ARSIP (Dan override status jika kadaluarsa)
+                const history = data.filter(c => {
+                    // Masukkan ke arsip jika status eksplisit dari Admin adalah ini:
+                    if (['selesai', 'ditolak', 'dibatalkan', 'berakhir'].includes(c.status)) return true;
+                    
+                    // ATAU, jika statusnya aktif TAPI tanggalnya sudah kadaluarsa (otomatis masuk arsip)
+                    if (c.status === 'aktif') {
+                        const akhirSewa = new Date(c.akhir_sewa);
+                        akhirSewa.setHours(0, 0, 0, 0);
+                        return akhirSewa < today;
+                    }
+                    return false;
+                }).map(c => {
+                    // (Opsional) Jika masuk arsip gara-gara tanggal lewat, ubah label statusnya jadi 'selesai' di UI
+                    if (c.status === 'aktif') {
+                        return { ...c, status: 'selesai' };
+                    }
+                    return c;
+                });
+                
                 setActiveContract(active || null);
                 setContractHistory(history);
             } else {
@@ -39,7 +68,7 @@ export const useKontrak = () => {
                 setContractHistory([]);
             }
         } catch (err: any) {
-            console.error('Error fetching contracts:', err.message);
+            console.error('Error fetching contract:', err.message);
         } finally {
             setLoading(false);
         }
@@ -47,26 +76,20 @@ export const useKontrak = () => {
 
     useEffect(() => {
         fetchCurrentContract();
-    }, [user, fetchCurrentContract]);
+    }, [fetchCurrentContract]);
 
-    // Fungsi utilitas helper hitung sisa hari
-    const getRemainingDays = (endDateStr: string) => {
-        if (!endDateStr) return 0;
-        const end = new Date(endDateStr);
+    const getRemainingDays = (endDate: string) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        
+        const end = new Date(endDate);
+        end.setHours(0, 0, 0, 0);
+        
         const diffTime = end.getTime() - today.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays > 0 ? diffDays : 0;
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     };
 
-    const ajukanKontrak = async (
-        mulaiSewa: string,
-        lamaSewa: number,
-        akhirSewa: string,
-        hargaPerBulan: number,
-        deposit: number
-    ) => {
+    const ajukanKontrak = async (lamaSewa: number, mulaiSewa: string, akhirSewa: string, hargaPerBulan: number, deposit: number) => {
         if (!user) return false;
         setLoading(true);
         
@@ -85,17 +108,18 @@ export const useKontrak = () => {
 
             if (insertError) throw insertError;
 
-            const { error: updateError } = await supabase
-                .from('users')
-                .update({ is_contract_complete: true })
-                .eq('id', user.id);
+            // Update status profil jika ini kontrak pertama
+            if (!profileData?.is_contract_complete) {
+                const { error: updateError } = await supabase
+                    .from('users')
+                    .update({ is_contract_complete: true })
+                    .eq('id', user.id);
 
-            if (updateError) {
-                console.error("Gagal update status user:", updateError.message);
-                throw updateError;
+                if (updateError) throw updateError;
             }
             
             await fetchCurrentContract(); 
+            if (refreshProfile) await refreshProfile(); 
             return true;
         } catch (err: any) {
             alert(`Gagal mengajukan kontrak: ${err.message}`);
@@ -111,8 +135,8 @@ export const useKontrak = () => {
         contractHistory,
         jenisKontrakOtomatis, 
         ajukanKontrak, 
+        getRemainingDays, 
         loading,
-        getRemainingDays,
-        refreshKontrak: fetchCurrentContract
+        refreshContract: fetchCurrentContract 
     };
 };

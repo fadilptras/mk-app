@@ -47,24 +47,13 @@ export const useTagihan = () => {
         fetchTagihan();
     }, [fetchTagihan]);
 
-    // Fungsi dummy untuk mock bayar (nantinya dihubungkan ke fitur upload struk)
-    const mockBayarTagihan = async (tagihanId: string) => {
-        try {
-            const { error } = await supabase
-                .from('tagihan_sewa')
-                .update({ 
-                    status: 'pending', // Berubah jadi pending nunggu Admin ACC
-                    tanggal_upload: new Date().toISOString()
-                })
-                .eq('id', tagihanId);
-            
-            if (error) throw error;
-            await fetchTagihan(); // Refresh UI
-            alert("Pembayaran berhasil disubmit. Menunggu verifikasi Admin.");
-        } catch (err: any) {
-            alert("Gagal memproses pembayaran.");
-        }
-    }
+    // Fungsi mockBayarTagihan telah dihapus karena logika upload bukti 
+    // transaksi sudah di-handle dengan baik oleh komponen FormBayarView.tsx
 
-    return { tagihanAktif, riwayatTagihan, loading, mockBayarTagihan };
-};
+    return { 
+        tagihanAktif, 
+        riwayatTagihan, 
+        loading, 
+        refreshTagihan: fetchTagihan 
+    };
+}

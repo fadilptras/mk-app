@@ -3,8 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useProfileCheck } from "../../../hooks/useProfileCheck";
 import { supabase } from "../../../lib/supabase";
 import html2canvas from "html2canvas";
-
 import InvoiceTemplate from "../../../components/penghuni/InvoiceTemplate";
+import { generateRefID } from "../../../utils/formatId";
 
 export default function DetailBayarView() {
   const navigate = useNavigate();
@@ -115,45 +115,26 @@ export default function DetailBayarView() {
           </div>
         )}
 
-        {/* STICKY NAVBAR */}
         <div className="bg-indigo-600 px-5 py-4 flex items-center gap-4 sticky top-0 z-20 shadow-md">
-          {/* FIX AXE: Menambah aria-label pada tombol navigasi kembali */}
           <button
             onClick={() => navigate("/sewa")}
             aria-label="Kembali ke Tagihan Sewa"
             title="Kembali ke Tagihan Sewa"
             className="p-2 bg-white/10 hover:bg-white/20 active:scale-95 transition-all rounded-full text-white"
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15 19l-7-7 7-7"
-              />
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <h1 className="text-lg font-black text-white tracking-tight">
-            Detail Transaksi
-          </h1>
+          <h1 className="text-lg font-black text-white tracking-tight">Detail Transaksi</h1>
         </div>
 
         <div className="px-5 pt-8 pb-6 flex-1">
           <div className="relative bg-white rounded-3xl shadow-xl shadow-indigo-900/10 overflow-hidden mx-auto w-full max-w-[360px]">
-            {/* BAGIAN ATAS TIKET */}
             <div className="px-6 pt-8 pb-6 text-center bg-white relative">
               <div
                 className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border-[4px] border-white shadow-md z-10 relative ${
-                  isPaid
-                    ? "bg-emerald-500 text-white"
-                    : isPending
-                      ? "bg-amber-400 text-white"
-                      : "bg-rose-500 text-white"
+                  isPaid ? "bg-emerald-500 text-white" : isPending ? "bg-amber-400 text-white" : "bg-rose-500 text-white"
                 }`}
               >
                 {isPaid ? (
@@ -171,46 +152,29 @@ export default function DetailBayarView() {
                 )}
               </div>
 
-              <h2 className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">
-                Total Pembayaran
-              </h2>
-              <h1 className="text-3xl font-black text-slate-800 tracking-tight">
-                {formatRupiah(detailTagihan?.nominal_tagihan || 0)}
-              </h1>
+              <h2 className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Total Pembayaran</h2>
+              <h1 className="text-3xl font-black text-slate-800 tracking-tight">{formatRupiah(detailTagihan?.nominal_tagihan || 0)}</h1>
 
               <div className="mt-3">
-                <span
-                  className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                    isPaid
-                      ? "bg-emerald-50 text-emerald-600"
-                      : isPending
-                        ? "bg-amber-50 text-amber-600"
-                        : "bg-rose-50 text-rose-600"
-                  }`}
-                >
-                  {isPaid
-                    ? "Pembayaran Berhasil"
-                    : isPending
-                      ? "Sedang Diproses"
-                      : "Pembayaran Gagal"}
+                <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${isPaid ? "bg-emerald-50 text-emerald-600" : isPending ? "bg-amber-50 text-amber-600" : "bg-rose-50 text-rose-600"}`}>
+                  {isPaid ? "Pembayaran Berhasil" : isPending ? "Sedang Diproses" : "Pembayaran Gagal"}
                 </span>
               </div>
             </div>
 
-            {/* GARIS PUTUS-PUTUS & POTONGAN TIKET */}
             <div className="relative flex items-center justify-between z-10">
               <div className="w-6 h-6 bg-[#BFDDF0] rounded-full absolute -left-3 shadow-inner"></div>
               <div className="w-full border-t-[2.5px] border-dashed border-gray-200 mx-5"></div>
               <div className="w-6 h-6 bg-[#BFDDF0] rounded-full absolute -right-3 shadow-inner"></div>
             </div>
 
-            {/* BAGIAN BAWAH TIKET */}
             <div className="px-6 pt-6 pb-8 bg-gray-50/50">
               <div className="space-y-4">
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-gray-500 font-medium">Nomor Referensi</span>
+                  {/* PEMBARUAN REF ID TRANSAKSI */}
                   <span className="font-mono font-bold text-gray-800">
-                    MK-{detailTagihan?.id.split("-")[0].toUpperCase()}
+                    {generateRefID('tagihan', detailTagihan?.id, detailTagihan?.created_at)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
@@ -223,9 +187,7 @@ export default function DetailBayarView() {
                 </div>
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-gray-500 font-medium">Waktu Transaksi</span>
-                  <span className="font-bold text-gray-800">
-                    {formatFullDate(detailTagihan?.tanggal_upload).replace("WIB", "").trim()}
-                  </span>
+                  <span className="font-bold text-gray-800">{formatFullDate(detailTagihan?.tanggal_upload).replace("WIB", "").trim()}</span>
                 </div>
 
                 <div className="border-t border-gray-200/60 my-2"></div>
@@ -235,10 +197,8 @@ export default function DetailBayarView() {
                   <span className="font-bold text-gray-800">Admin Mutiara Kost</span>
                 </div>
 
-                {/* Gambar Struk (Bisa Dilihat) */}
                 {detailTagihan?.bukti_transfer && (
                   <div className="pt-2">
-                    {/* FIX AXE: Mengubah div yang memiliki aksi onClick menjadi tag <button> */}
                     <button
                       className="w-full flex items-center justify-between bg-white border border-gray-200 p-2.5 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors shadow-sm focus:outline-none focus:border-indigo-400"
                       onClick={() => window.open(detailTagihan.bukti_transfer, "_blank")}
@@ -253,9 +213,7 @@ export default function DetailBayarView() {
                         </div>
                         <span className="text-[11px] font-bold text-gray-600">Bukti_Transfer.jpg</span>
                       </div>
-                      <span className="text-[10px] text-indigo-600 font-black uppercase tracking-wide px-2">
-                        Lihat
-                      </span>
+                      <span className="text-[10px] text-indigo-600 font-black uppercase tracking-wide px-2">Lihat</span>
                     </button>
                   </div>
                 )}
@@ -264,7 +222,6 @@ export default function DetailBayarView() {
           </div>
         </div>
 
-        {/* TOMBOL DOWNLOAD INVOICE */}
         <div className="px-8 pb-8 relative z-10">
           <button
             onClick={handleDownloadInvoice}

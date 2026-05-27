@@ -1,17 +1,17 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import MobileLayout from "./components/layout/MobileLayout";
 import AuthPage from "./pages/penghuni/auth/AuthPage";
-import ProfileEditView from "./pages/profile/ProfileEditView";
+import ProfileEditView from "./pages/penghuni/profile/ProfileEditView";
 import PenghuniDashboardView from "./pages/penghuni/PenghuniDashboardView";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
 // Import Halaman Fitur Penghuni
-import SewaView from "./pages/penghuni/SewaView";
-import WifiView from "./pages/penghuni/WifiView";
-import ListrikView from "./pages/penghuni/ListrikView";
-import LaporView from "./pages/penghuni/LaporView";
+import SewaView from "./pages/penghuni/sewa/SewaView";
+import WifiView from "./pages/penghuni/wifi/WifiView";
+import ListrikView from "./pages/penghuni/listrik/ListrikView";
+import LaporView from "./pages/penghuni/lapor/LaporView";
 import NotificationView from "./pages/penghuni/NotificationView";
-import PeraturanView from "./pages/penghuni/PeraturanView";
+import PeraturanView from "./pages/penghuni/peraturan/PeraturanView";
 
 import AdminLayout from "./components/layout/AdminLayout";
 import AdminDashboardView from "./pages/admin/AdminDashboardView";
@@ -21,10 +21,10 @@ import SetListrikView from "./pages/admin/SetListrikView";
 import SetWifiView from "./pages/admin/SetWifiView";
 import KelolaLaporanView from "./pages/admin/KelolaLaporanView";
 // import KontrakView from './pages/penghuni/KontrakView';
-import KontrakDashboardView from "./pages/penghuni/KontrakDashboardView";
-import FormKontrakView from "./pages/penghuni/FormKontrakView";
-import FormBayarView from "./pages/penghuni/FormBayarView";
-import DetailBayarView from "./pages/penghuni/DetailRiwayatPembayaran";
+import KontrakDashboardView from "./pages/penghuni/kontrak/KontrakDashboardView";
+import FormKontrakView from "./pages/penghuni/kontrak/FormKontrakView";
+import FormBayarView from "./pages/penghuni/sewa/FormBayarView";
+import DetailBayarView from "./pages/penghuni/sewa/DetailRiwayatPembayaran";
 
 function App() {
   return (

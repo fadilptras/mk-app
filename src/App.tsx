@@ -20,17 +20,17 @@ import DetailBayarView from "./pages/penghuni/sewa/DetailRiwayatPembayaran";
 
 // Admin
 import AdminLayout from "./components/layout/AdminLayout";
-import AdminDashboardView from "./pages/admin/AdminDashboardView";
-import KelolaKamarView from "./pages/admin/KelolaKamarView";
-import KelolaPenghuniView from "./pages/admin/KelolaPenghuniView";
-import SetListrikView from "./pages/admin/SetListrikView";
-import SetWifiView from "./pages/admin/SetWifiView";
-import KelolaLaporanView from "./pages/admin/KelolaLaporanView";
-import KelolaTagihanView from './pages/admin/KelolaTagihanView';
-import KelolaKontrakView from './pages/admin/KelolaKontrakView';
-import DetailKontrakView from './pages/admin/DetailKontrakView';
-import DetailTagihanView from './pages/admin/DetailTagihanView';
-import KirimPengumumanView from "./pages/admin/KirimPengumumanView";
+import AdminDashboardView from "./pages/admin/dashboard/AdminDashboardView";
+import KelolaKamarView from "./pages/admin/man-kamar/KelolaKamarView";
+import KelolaPenghuniView from "./pages/admin/man-penghuni/KelolaPenghuniView";
+import SetListrikView from "./pages/admin/man-listrik/SetListrikView";
+import SetWifiView from "./pages/admin/man-wifi/SetWifiView";
+import KelolaLaporanView from "./pages/admin/man-lapor/KelolaLaporanView";
+import KelolaTagihanView from "./pages/admin/man-sewa/KelolaTagihanView";
+import KelolaKontrakView from "./pages/admin/man-kontrak/KelolaKontrakView";
+import DetailKontrakView from "./pages/admin/man-kontrak/DetailKontrakView";
+import DetailTagihanView from "./pages/admin/man-sewa/DetailTagihanView";
+import KirimPengumumanView from "./pages/admin/man-pengumuman/KirimPengumumanView";
 
 function App() {
   return (
@@ -42,7 +42,6 @@ function App() {
 
           {/* Rute Terproteksi (Harus Login) */}
           <Route element={<ProtectedRoute />}>
-            
             {/* ====== ROUTE PENGHUNI ====== */}
             <Route path="/profile/edit" element={<ProfileEditView />} />
             <Route path="/dashboard" element={<PenghuniDashboardView />} />
@@ -74,7 +73,6 @@ function App() {
               <Route path="tagihan/:id" element={<DetailTagihanView />} />
               <Route path="pengumuman" element={<KirimPengumumanView />} />
             </Route>
-
           </Route>
 
           {/* Catch-all route (404 Fallback) */}

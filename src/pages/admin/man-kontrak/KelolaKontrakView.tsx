@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAdminKontrak } from '../../hooks/useAdminKontrak';
+import { useAdminKontrak } from '../../../hooks/useAdminKontrak';
 import { Search, Clock, FileText, Archive, ChevronRight } from 'lucide-react';
 
 type TabType = 'menunggu_persetujuan' | 'aktif' | 'arsip';

@@ -6,12 +6,12 @@ import AuthPage from "./pages/penghuni/auth/AuthPage";
 
 // Penghuni / user
 import ProfileEditView from "./pages/penghuni/profile/ProfileEditView";
-import PenghuniDashboardView from "./pages/penghuni/PenghuniDashboardView";
+import PenghuniDashboardView from "./pages/penghuni/dashboard/PenghuniDashboardView";
 import SewaView from "./pages/penghuni/sewa/SewaView";
 import WifiView from "./pages/penghuni/wifi/WifiView";
 import ListrikView from "./pages/penghuni/listrik/ListrikView";
 import LaporView from "./pages/penghuni/lapor/LaporView";
-import NotificationView from "./pages/penghuni/NotificationView";
+import NotificationView from "./pages/penghuni/notifikasi/NotificationView";
 import PeraturanView from "./pages/penghuni/peraturan/PeraturanView";
 import KontrakDashboardView from "./pages/penghuni/kontrak/KontrakDashboardView";
 import FormKontrakView from "./pages/penghuni/kontrak/FormKontrakView";

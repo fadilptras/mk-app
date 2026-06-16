@@ -1,18 +1,25 @@
 import { useState, useMemo } from 'react';
-import { useAdminPenghuni, type PenghuniAdmin } from '../../../hooks/useAdminPenghuni';
+import { useManagePenghuni, type PenghuniAdmin } from '../../../hooks/admin/penghuni/useManagePenghuni';
+import { useCreatePenghuni } from '../../../hooks/admin/penghuni/useCreatePenghuni';
 import { formatDate } from '../../../utils/formatters';
 import toast, { Toaster } from 'react-hot-toast';
-import { Search, Filter, User, Info, Edit, XCircle, Save, Phone, CreditCard, CalendarDays, FileWarning } from 'lucide-react';
+import { Search, Filter, User, Info, Edit, XCircle, Save, Phone, CreditCard, CalendarDays, FileWarning, UserPlus, Trash2, Key } from 'lucide-react';
 
 export default function KelolaPenghuniView() {
-  const { penghuni, rooms, loading, isUpdating, updatePenghuni } = useAdminPenghuni();
+  // 1. Inisialisasi Hooks Baru
+  const { penghuni, rooms, loading, isUpdating, updatePenghuni, deletePenghuni, resetPassword, refresh } = useManagePenghuni();
+  const { createAccount, isCreating } = useCreatePenghuni();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterRoom, setFilterRoom] = useState('all');
 
+  // State Modals
   const [selectedUser, setSelectedUser] = useState<PenghuniAdmin | null>(null);
   const [editUser, setEditUser] = useState<PenghuniAdmin | null>(null);
+  const [modalTambahOpen, setModalTambahOpen] = useState(false);
+
+  // State Form Edit
   const [formData, setFormData] = useState({
     status_akun: '',
     tanggal_masuk: '',
@@ -22,26 +29,38 @@ export default function KelolaPenghuniView() {
     room_id: ''
   });
 
+  // State Form Tambah
+  const [createData, setCreateData] = useState({
+    email: '',
+    kamar_id: '',
+    tanggal_masuk: '',
+    tanggal_tagihan: '',
+    biaya_sewa: '',
+    biaya_deposit: '',
+    no_rek_pembayaran: '',
+    nama_rek_pembayaran: ''
+  });
+
+  // Logika Filter
   const filteredPenghuni = useMemo(() => {
     return penghuni.filter((item) => {
-      // 1. Search Logic
       const name = item.profile?.nama_lengkap?.toLowerCase() || '';
-      const email = item.email.toLowerCase();
+      // Tambahan ?. untuk mencegah crash jika email kosong
+      const email = item.email?.toLowerCase() || ''; 
       const matchSearch = name.includes(searchQuery.toLowerCase()) || email.includes(searchQuery.toLowerCase());
 
-      // 2. Status Logic
       let matchStatus = true;
       if (filterStatus === 'aktif') matchStatus = item.status_akun === 'aktif';
       if (filterStatus === 'incomplete') matchStatus = !item.is_profile_complete;
       if (filterStatus === 'noroom') matchStatus = !item.room;
 
-      // 3. Room Logic
       const matchRoom = filterRoom === 'all' || item.room?.room_number === filterRoom;
 
       return matchSearch && matchStatus && matchRoom;
     });
   }, [penghuni, searchQuery, filterStatus, filterRoom]);
 
+  // Handler Edit
   const handleOpenEdit = (user: PenghuniAdmin) => {
     setEditUser(user);
     setFormData({
@@ -58,7 +77,6 @@ export default function KelolaPenghuniView() {
     e.preventDefault();
     if (!editUser) return;
 
-    // Bersihkan payload dari empty string menjadi null agar DB rapi
     const payload = {
       status_akun: formData.status_akun,
       tanggal_masuk: formData.tanggal_masuk || null,
@@ -72,13 +90,39 @@ export default function KelolaPenghuniView() {
     if (success) setEditUser(null);
   };
 
+  // Handler Tambah Penghuni
+  const handleCreateAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createData.email) return toast.error("Email wajib diisi!");
+
+    const result = await createAccount(createData);
+    if (result.success) {
+      setModalTambahOpen(false);
+      // Reset form setelah berhasil
+      setCreateData({
+        email: '', kamar_id: '', tanggal_masuk: '', tanggal_tagihan: '',
+        biaya_sewa: '', biaya_deposit: '', no_rek_pembayaran: '', nama_rek_pembayaran: ''
+      });
+      refresh(); // Refresh data tabel
+    }
+  };
+
   return (
     <div className="px-5 mt-6 space-y-5 pb-10">
       <Toaster position="top-center" />
       
-      <div>
-        <h1 className="text-xl font-black text-[#0D2F5C] uppercase tracking-widest">Kelola Penghuni</h1>
-        <p className="text-[#7A93B5] text-xs font-medium mt-1">Data profil dan administrasi akun</p>
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-xl font-black text-[#0D2F5C] uppercase tracking-widest">Kelola Penghuni</h1>
+          <p className="text-[#7A93B5] text-xs font-medium mt-1">Data profil dan administrasi akun</p>
+        </div>
+        <button 
+          onClick={() => setModalTambahOpen(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white p-3 md:px-5 md:py-3 rounded-2xl shadow-lg shadow-blue-200 transition-all active:scale-95 flex items-center gap-2"
+        >
+          <UserPlus className="w-5 h-5" />
+          <span className="hidden md:inline font-black text-[10px] uppercase tracking-widest">Tambah Penghuni</span>
+        </button>
       </div>
 
       {/* Filter & Search Bar */}
@@ -135,7 +179,7 @@ export default function KelolaPenghuniView() {
           </div>
         ) : (
           filteredPenghuni.map((user) => (
-            <div key={user.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col space-y-4">
+            <div key={user.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col space-y-4 hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-slate-100 border-2 border-white shadow-sm overflow-hidden shrink-0">
                   {user.profile?.foto_diri ? (
@@ -170,18 +214,39 @@ export default function KelolaPenghuniView() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-1">
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 pt-1">
                 <button 
                   onClick={() => setSelectedUser(user)}
-                  className="py-2.5 bg-slate-50 text-slate-600 hover:bg-[#0D2F5C] hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2.5 bg-slate-50 text-slate-600 hover:bg-[#0D2F5C] hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5"
                 >
                   <Info className="w-3.5 h-3.5" /> Detail
                 </button>
                 <button 
                   onClick={() => handleOpenEdit(user)}
-                  className="py-2.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5"
+                  className="flex-1 py-2.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5"
                 >
-                  <Edit className="w-3.5 h-3.5" /> Edit Admin
+                  <Edit className="w-3.5 h-3.5" /> Edit
+                </button>
+                <button 
+                  onClick={() => {
+                    if(window.confirm(`Yakin ingin reset password ${user.email} ke PasswordKost123! ?`)) resetPassword(user.id);
+                  }}
+                  disabled={isUpdating}
+                  className="p-2.5 bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white rounded-xl transition-all"
+                  title="Reset Password"
+                >
+                  <Key className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={() => {
+                    if(window.confirm(`HAPUS PERMANEN akun ${user.email}? Semua data akan hilang!`)) deletePenghuni(user.id);
+                  }}
+                  disabled={isUpdating}
+                  className="p-2.5 bg-rose-50 text-rose-600 hover:bg-rose-500 hover:text-white rounded-xl transition-all"
+                  title="Hapus Penghuni"
+                >
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -189,7 +254,111 @@ export default function KelolaPenghuniView() {
         )}
       </div>
 
-      {/* MODAL 1: DETAIL LENGKAP */}
+      {/* MODAL: TAMBAH PENGHUNI */}
+      {modalTambahOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-blue-600 text-white">
+              <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2"><UserPlus className="w-4 h-4" /> Undangan Penghuni</h2>
+              <button title="Batal" aria-label="Batal" onClick={() => setModalTambahOpen(false)} className="text-white/70 hover:text-white">
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleCreateAccount}>
+              <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div>
+                  <label className="block text-slate-500 uppercase tracking-widest text-[10px] font-black mb-1.5">Email (Untuk Login)</label>
+                  <input 
+                    type="email" required placeholder="email@contoh.com"
+                    className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-bold"
+                    value={createData.email} onChange={(e) => setCreateData({...createData, email: e.target.value})}
+                  />
+                  <p className="text-[9px] text-blue-500 mt-1 font-medium italic">*Password default: PasswordKost123!</p>
+                </div>
+
+                <div>
+                  <label className="block text-slate-500 uppercase tracking-widest text-[10px] font-black mb-1.5">Alokasi Kamar (Opsional)</label>
+                  <select 
+                    className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-bold"
+                    value={createData.kamar_id} onChange={(e) => setCreateData({...createData, kamar_id: e.target.value})}
+                  >
+                    <option value="">-- Pilih Kamar --</option>
+                    {rooms.map(r => <option key={r.id} value={r.id}>Kamar {r.room_number}</option>)}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-500 uppercase tracking-widest text-[10px] font-black mb-1.5">Tgl Masuk</label>
+                    <input 
+                      type="date" required
+                      className="w-full px-3 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold"
+                      value={createData.tanggal_masuk} onChange={(e) => setCreateData({...createData, tanggal_masuk: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 uppercase tracking-widest text-[10px] font-black mb-1.5">Tgl Tagihan</label>
+                    <input 
+                      type="number" min="1" max="31" placeholder="Cth: 15" required
+                      className="w-full px-3 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold"
+                      value={createData.tanggal_tagihan} onChange={(e) => setCreateData({...createData, tanggal_tagihan: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-500 uppercase tracking-widest text-[10px] font-black mb-1.5">Biaya Sewa</label>
+                    <input 
+                      type="number" placeholder="Rp"
+                      className="w-full px-3 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold"
+                      value={createData.biaya_sewa} onChange={(e) => setCreateData({...createData, biaya_sewa: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 uppercase tracking-widest text-[10px] font-black mb-1.5">Deposit</label>
+                    <input 
+                      type="number" placeholder="Rp"
+                      className="w-full px-3 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold"
+                      value={createData.biaya_deposit} onChange={(e) => setCreateData({...createData, biaya_deposit: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                {/* INPUT REKENING PEMBAYARAN BARU DI SINI */}
+                <div className="pt-2">
+                  <p className="text-[#0D2F5C] font-black text-xs uppercase tracking-widest border-b border-slate-100 pb-1 mb-2">Info Rekening Pembayaran</p>
+                  <div className="space-y-3">
+                    <input 
+                      type="text" placeholder="Bank & No Rekening (Cth: BCA 123456)"
+                      className="w-full px-4 py-2.5 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium"
+                      value={createData.no_rek_pembayaran} onChange={(e) => setCreateData({...createData, no_rek_pembayaran: e.target.value})}
+                    />
+                    <input 
+                      type="text" placeholder="Atas Nama Rekening"
+                      className="w-full px-4 py-2.5 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium"
+                      value={createData.nama_rek_pembayaran} onChange={(e) => setCreateData({...createData, nama_rek_pembayaran: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+              </div>
+
+              <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-2">
+                <button type="button" onClick={() => setModalTambahOpen(false)} className="px-5 py-2.5 rounded-xl font-black text-slate-500 hover:bg-slate-200 uppercase tracking-widest text-[10px]">
+                  Batal
+                </button>
+                <button type="submit" disabled={isCreating} className="px-5 py-2.5 rounded-xl font-black text-white bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-200 uppercase tracking-widest text-[10px] flex items-center gap-1.5 disabled:opacity-50">
+                  <UserPlus className="w-3.5 h-3.5" /> {isCreating ? 'Mendaftarkan...' : 'Buat Akun'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: DETAIL LENGKAP */}
       {selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-3xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
@@ -265,7 +434,7 @@ export default function KelolaPenghuniView() {
         </div>
       )}
 
-      {/* MODAL 2: EDIT DATA ADMIN */}
+      {/* MODAL: EDIT DATA ADMIN */}
       {editUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
@@ -317,7 +486,7 @@ export default function KelolaPenghuniView() {
                   <div>
                     <label className="block text-slate-500 uppercase tracking-widest text-[10px] font-black mb-1.5">Tgl Tagihan</label>
                     <input 
-                      type="date" 
+                      type="number" min="1" max="31"
                       className="w-full px-3 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold"
                       value={formData.tanggal_tagihan} onChange={(e) => setFormData({...formData, tanggal_tagihan: e.target.value})}
                     />

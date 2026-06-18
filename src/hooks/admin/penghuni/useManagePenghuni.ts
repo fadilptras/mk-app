@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { createClient } from '@supabase/supabase-js';
 import toast from 'react-hot-toast';
 
 export interface PenghuniAdmin {
@@ -26,7 +25,7 @@ export interface PenghuniAdmin {
     const [loading, setLoading] = useState(true);
     const [isUpdating, setIsUpdating] = useState(false);
 
-    // FETCH PENGHUNI - PERBAIKAN QUERY (Sesuai Skema Asli)
+    // FETCH PENGHUNI
     const fetchPenghuni = useCallback(async () => {
         setLoading(true);
         try {
@@ -41,10 +40,7 @@ export interface PenghuniAdmin {
             .neq('role', 'admin')
             .order('created_at', { ascending: false });
 
-        if (error) {
-            console.error("Supabase Fetch Error:", error);
-            throw error;
-        }
+        if (error) throw error;
 
         const formattedData: PenghuniAdmin[] = (data || []).map((item: any) => {
             const profileData = Array.isArray(item.user_profiles) ? item.user_profiles[0] : item.user_profiles;
@@ -54,8 +50,8 @@ export interface PenghuniAdmin {
             ...item,
             profile: profileData || null,
             room: roomData || null,
-            active_contract: item.is_contract_complete === true, // Langsung pakai dari tabel users
-            unpaid_bills: 0 // Default 0 sementara sampai modul tagihan dipasang
+            active_contract: item.is_contract_complete === true, 
+            unpaid_bills: 0 
             };
         });
 
@@ -67,7 +63,6 @@ export interface PenghuniAdmin {
         }
     }, []);
 
-    // FETCH KAMAR (Untuk dropdown di modal)
     const fetchRooms = useCallback(async () => {
         try {
         const { data, error } = await supabase.from('rooms').select('id, room_number').order('room_number');
@@ -75,7 +70,6 @@ export interface PenghuniAdmin {
         } catch (err) {}
     }, []);
 
-    // UPDATE DATA
     const updatePenghuni = async (id: string, payload: any) => {
         setIsUpdating(true);
         try {
@@ -92,20 +86,15 @@ export interface PenghuniAdmin {
         }
     };
 
-    // HAPUS PENGHUNI TOTAL (Memakai Cascade Delete)
+    // --- HAPUS PENGHUNI (Via RPC Supabase) ---
     const deletePenghuni = async (id: string) => {
         setIsUpdating(true);
         try {
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-        
-        const adminAuthClient = createClient(supabaseUrl, serviceRoleKey, {
-            auth: { autoRefreshToken: false, persistSession: false }
-        });
+        // Memanggil fungsi SQL yang baru saja kita buat di Supabase
+        const { error } = await supabase.rpc('admin_delete_user', { target_user_id: id });
 
-        const { error } = await adminAuthClient.auth.admin.deleteUser(id);
-        
         if (error) throw error;
+
         toast.success('Akun penghuni berhasil dihapus permanen!');
         await fetchPenghuni();
         return true;
@@ -117,27 +106,30 @@ export interface PenghuniAdmin {
         }
     };
 
-    // RESET PASSWORD PENGHUNI
+    // --- RESET PASSWORD (Via RPC Supabase) ---
     const resetPassword = async (userId: string) => {
         setIsUpdating(true);
         try {
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+        const defaultPassword = '@Mtr1225';
 
-        const adminAuthClient = createClient(supabaseUrl, serviceRoleKey, {
-            auth: { autoRefreshToken: false, persistSession: false }
+        // 1. Memanggil fungsi SQL untuk mereset password secara internal
+        const { error: rpcError } = await supabase.rpc('admin_reset_password', { 
+            target_user_id: userId, 
+            new_password: defaultPassword 
         });
 
-        const defaultPassword = 'PasswordKost123!';
+        if (rpcError) throw rpcError;
 
-        const { error } = await adminAuthClient.auth.admin.updateUserById(
-            userId,
-            { password: defaultPassword }
-        );
+        // 2. Kembalikan status_akun menjadi belum_aktif agar mereka dicegat saat login
+        const { error: updateStatusError } = await supabase
+            .from('users')
+            .update({ status_akun: 'belum_aktif' })
+            .eq('id', userId);
 
-        if (error) throw error;
+        if (updateStatusError) throw updateStatusError;
 
         toast.success(`Password direset menjadi: ${defaultPassword}`);
+        await fetchPenghuni();
         return true;
         } catch (error: any) {
         console.error('Reset password error:', error);

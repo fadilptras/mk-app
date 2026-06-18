@@ -17,9 +17,9 @@ export interface PenghuniAdmin {
     room: { room_number: string } | null;
     active_contract: boolean;
     unpaid_bills: number;
-    }
+}
 
-    export const useManagePenghuni = () => {
+export const useManagePenghuni = () => {
     const [penghuni, setPenghuni] = useState<PenghuniAdmin[]>([]);
     const [rooms, setRooms] = useState<{id: string, room_number: string}[]>([]);
     const [loading, setLoading] = useState(true);
@@ -70,11 +70,36 @@ export interface PenghuniAdmin {
         } catch (err) {}
     }, []);
 
+    // --- UPDATE DATA PENGHUNI (Dengan Auto-Status Pindah Kamar) ---
     const updatePenghuni = async (id: string, payload: any) => {
         setIsUpdating(true);
         try {
+        // 1. Ambil data kamar lama sebelum diupdate
+        const { data: oldUser } = await supabase.from('users').select('room_id').eq('id', id).single();
+        const oldRoomId = oldUser?.room_id;
+
+        // 2. Lakukan update data penghuni
         const { error } = await supabase.from('users').update(payload).eq('id', id);
         if (error) throw error;
+
+        // 3. LOGIKA PINDAH KAMAR / CABUT KAMAR
+        if (payload.hasOwnProperty('room_id') && payload.room_id !== oldRoomId) {
+            
+            // A. Kamar baru otomatis diset jadi OCCUPIED
+            if (payload.room_id) {
+                await supabase.from('rooms').update({ status: 'OCCUPIED' }).eq('id', payload.room_id);
+            }
+
+            // B. Kamar lama di-cek apakah sudah kosong melompong
+            if (oldRoomId) {
+                const { data: occupants } = await supabase.from('users').select('id').eq('room_id', oldRoomId);
+                // Jika tidak ada user lain di kamar lama, ganti jadi AVAILABLE
+                if (!occupants || occupants.length === 0) {
+                    await supabase.from('rooms').update({ status: 'AVAILABLE' }).eq('id', oldRoomId);
+                }
+            }
+        }
+
         toast.success('Data penghuni berhasil diperbarui!');
         await fetchPenghuni();
         return true;
@@ -86,14 +111,25 @@ export interface PenghuniAdmin {
         }
     };
 
-    // --- HAPUS PENGHUNI (Via RPC Supabase) ---
+    // --- HAPUS PENGHUNI (Dengan Auto-Status Cabut Kamar) ---
     const deletePenghuni = async (id: string) => {
         setIsUpdating(true);
         try {
-        // Memanggil fungsi SQL yang baru saja kita buat di Supabase
-        const { error } = await supabase.rpc('admin_delete_user', { target_user_id: id });
+        // 1. Ambil data kamar sebelum user dihapus permanen
+        const { data: oldUser } = await supabase.from('users').select('room_id').eq('id', id).single();
+        const oldRoomId = oldUser?.room_id;
 
+        // 2. Eksekusi hapus di database
+        const { error } = await supabase.rpc('admin_delete_user', { target_user_id: id });
         if (error) throw error;
+
+        // 3. Bebaskan kamar jika sudah tidak ada penghuni lain
+        if (oldRoomId) {
+            const { data: occupants } = await supabase.from('users').select('id').eq('room_id', oldRoomId);
+            if (!occupants || occupants.length === 0) {
+                await supabase.from('rooms').update({ status: 'AVAILABLE' }).eq('id', oldRoomId);
+            }
+        }
 
         toast.success('Akun penghuni berhasil dihapus permanen!');
         await fetchPenghuni();
@@ -106,13 +142,13 @@ export interface PenghuniAdmin {
         }
     };
 
-    // --- RESET PASSWORD (Via RPC Supabase) ---
+    // --- RESET PASSWORD ---
     const resetPassword = async (userId: string) => {
         setIsUpdating(true);
         try {
+        // DIKEMBALIKAN KE FORMAT ASLI (TIDAK AKAN DIUBAH LAGI)
         const defaultPassword = '@Mtr1225';
 
-        // 1. Memanggil fungsi SQL untuk mereset password secara internal
         const { error: rpcError } = await supabase.rpc('admin_reset_password', { 
             target_user_id: userId, 
             new_password: defaultPassword 
@@ -120,7 +156,6 @@ export interface PenghuniAdmin {
 
         if (rpcError) throw rpcError;
 
-        // 2. Kembalikan status_akun menjadi belum_aktif agar mereka dicegat saat login
         const { error: updateStatusError } = await supabase
             .from('users')
             .update({ status_akun: 'belum_aktif' })

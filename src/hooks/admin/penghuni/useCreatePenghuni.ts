@@ -3,27 +3,28 @@ import { supabase } from '../../../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
 import toast from 'react-hot-toast';
 
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY; 
+
+// Dibuat di luar agar tidak muncul warning "Multiple GoTrueClient instances"
+const signupClient = createClient(supabaseUrl, anonKey, {
+    auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+    }
+});
+
 export const useCreatePenghuni = () => {
     const [isCreating, setIsCreating] = useState(false);
 
     const createAccount = async (formData: any) => {
         setIsCreating(true);
         try {
-            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-            const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY; 
-
             if (!supabaseUrl || !anonKey) {
                 throw new Error("Supabase URL atau Publishable Key tidak ditemukan di .env");
             }
 
-            // Buat Klien Khusus Pendaftaran (Agar sesi Admin tidak tertimpa/logout)
-            const signupClient = createClient(supabaseUrl, anonKey, {
-                auth: {
-                    persistSession: false,
-                    autoRefreshToken: false,
-                }
-            });
-
+            // DIKEMBALIKAN KE FORMAT ASLI (TIDAK AKAN DIUBAH LAGI)
             const defaultPassword = '@Mtr1225';
 
             const { data: authData, error: authError } = await signupClient.auth.signUp({
@@ -36,7 +37,7 @@ export const useCreatePenghuni = () => {
             const newUserId = authData.user?.id;
             if (!newUserId) throw new Error('Gagal mendapatkan ID User dari sistem.');
 
-            // Masukkan data operasional ke tabel public.users menggunakan sesi Admin
+            // 1. Masukkan data ke tabel public.users
             const { error: userError } = await supabase.from('users').insert([{
                 id: newUserId,
                 email: formData.email, 
@@ -53,6 +54,16 @@ export const useCreatePenghuni = () => {
             }]);
             
             if (userError) throw userError;
+
+            // 2. OTOMATISASI KAMAR (Kamar yang dipilih otomatis OCCUPIED)
+            if (formData.kamar_id) {
+                const { error: roomError } = await supabase
+                    .from('rooms')
+                    .update({ status: 'OCCUPIED' })
+                    .eq('id', formData.kamar_id);
+                
+                if (roomError) console.error("Gagal otomatisasi status kamar:", roomError);
+            }
             
             toast.success('Akun penghuni berhasil dibuat!');
             return { success: true };

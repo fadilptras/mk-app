@@ -141,6 +141,7 @@ export default function KelolaPenghuniView() {
           <div className="relative flex-1 md:w-48">
             <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <select 
+              title="Filter Status Penghuni"
               className="w-full pl-11 pr-4 py-3.5 bg-slate-50 rounded-2xl border-none text-xs font-black uppercase tracking-widest focus:ring-2 focus:ring-blue-500 outline-none appearance-none cursor-pointer text-slate-600"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
@@ -153,6 +154,7 @@ export default function KelolaPenghuniView() {
           </div>
           <div className="relative flex-1 md:w-40">
             <select 
+              title="Filter Kamar"
               className="w-full px-4 py-3.5 bg-slate-50 rounded-2xl border-none text-xs font-black uppercase tracking-widest focus:ring-2 focus:ring-blue-500 outline-none appearance-none cursor-pointer text-slate-600"
               value={filterRoom}
               onChange={(e) => setFilterRoom(e.target.value)}
@@ -230,7 +232,7 @@ export default function KelolaPenghuniView() {
                 </button>
                 <button 
                   onClick={() => {
-                    if(window.confirm(`Yakin ingin reset password ${user.email} ke PasswordKost123! ?`)) resetPassword(user.id);
+                    if(window.confirm(`Yakin ingin reset password ${user.email} ke @Mtr1225 ?`)) resetPassword(user.id);
                   }}
                   disabled={isUpdating}
                   className="p-2.5 bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white rounded-xl transition-all"
@@ -280,6 +282,7 @@ export default function KelolaPenghuniView() {
                 <div>
                   <label className="block text-slate-500 uppercase tracking-widest text-[10px] font-black mb-1.5">Alokasi Kamar (Opsional)</label>
                   <select 
+                    title="Filter Kamar"
                     className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-bold"
                     value={createData.kamar_id} onChange={(e) => setCreateData({...createData, kamar_id: e.target.value})}
                   >
@@ -292,6 +295,7 @@ export default function KelolaPenghuniView() {
                   <div>
                     <label className="block text-slate-500 uppercase tracking-widest text-[10px] font-black mb-1.5">Tgl Masuk</label>
                     <input 
+                      title="Tanggal Masuk Penghuni"
                       type="date" required
                       className="w-full px-3 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold"
                       value={createData.tanggal_masuk} onChange={(e) => setCreateData({...createData, tanggal_masuk: e.target.value})}
@@ -300,7 +304,8 @@ export default function KelolaPenghuniView() {
                   <div>
                     <label className="block text-slate-500 uppercase tracking-widest text-[10px] font-black mb-1.5">Tgl Tagihan</label>
                     <input 
-                      type="number" min="1" max="31" placeholder="Cth: 15" required
+                      title="Tanggal Tagihan Penghuni"
+                      type="date" required
                       className="w-full px-3 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold"
                       value={createData.tanggal_tagihan} onChange={(e) => setCreateData({...createData, tanggal_tagihan: e.target.value})}
                     />
@@ -454,6 +459,7 @@ export default function KelolaPenghuniView() {
                 <div>
                   <label className="block text-slate-500 uppercase tracking-widest text-[10px] font-black mb-1.5">Status Akun</label>
                   <select 
+                    title="Filter Status Penghuni"
                     className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-bold"
                     value={formData.status_akun} onChange={(e) => setFormData({...formData, status_akun: e.target.value})}
                   >
@@ -466,6 +472,7 @@ export default function KelolaPenghuniView() {
                 <div>
                   <label className="block text-slate-500 uppercase tracking-widest text-[10px] font-black mb-1.5">Alokasi Kamar</label>
                   <select 
+                    title="Filter Kamar"
                     className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-sm font-bold"
                     value={formData.room_id} onChange={(e) => setFormData({...formData, room_id: e.target.value})}
                   >
@@ -478,6 +485,7 @@ export default function KelolaPenghuniView() {
                   <div>
                     <label className="block text-slate-500 uppercase tracking-widest text-[10px] font-black mb-1.5">Tgl Masuk</label>
                     <input 
+                      title="Tanggal Masuk Penghuni"
                       type="date" 
                       className="w-full px-3 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold"
                       value={formData.tanggal_masuk} onChange={(e) => setFormData({...formData, tanggal_masuk: e.target.value})}
@@ -486,6 +494,7 @@ export default function KelolaPenghuniView() {
                   <div>
                     <label className="block text-slate-500 uppercase tracking-widest text-[10px] font-black mb-1.5">Tgl Tagihan</label>
                     <input 
+                      title="Tanggal Tagihan Penghuni"
                       type="number" min="1" max="31"
                       className="w-full px-3 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold"
                       value={formData.tanggal_tagihan} onChange={(e) => setFormData({...formData, tanggal_tagihan: e.target.value})}

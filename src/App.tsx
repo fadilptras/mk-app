@@ -2,9 +2,13 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
 import MobileLayout from "./components/layout/MobileLayout";
-import AuthPage from "./pages/penghuni/auth/AuthPage";
 
-// Penghuni / user
+// Auth Views
+import LoginView from "./pages/auth/LoginView";
+import ForgotPasswordView from "./pages/auth/ForgotPasswordView";
+import SetupPasswordView from "./pages/auth/SetupPasswordView";
+
+// Penghuni Views
 import ProfileEditView from "./pages/penghuni/profile/ProfileEditView";
 import PenghuniDashboardView from "./pages/penghuni/dashboard/PenghuniDashboardView";
 import SewaView from "./pages/penghuni/sewa/SewaView";
@@ -18,7 +22,7 @@ import FormKontrakView from "./pages/penghuni/kontrak/FormKontrakView";
 import FormBayarView from "./pages/penghuni/sewa/FormBayarView";
 import DetailBayarView from "./pages/penghuni/sewa/DetailRiwayatPembayaran";
 
-// Admin
+// Admin Views
 import AdminLayout from "./components/layout/AdminLayout";
 import AdminDashboardView from "./pages/admin/dashboard/AdminDashboardView";
 import KelolaKamarView from "./pages/admin/man-kamar/KelolaKamarView";
@@ -37,11 +41,19 @@ function App() {
     <BrowserRouter>
       <MobileLayout>
         <Routes>
-          <Route path="/" element={<Navigate to="/auth" replace />} />
-          <Route path="/auth" element={<AuthPage />} />
+          {/* Default Route diarahkan ke halaman login */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          
+          {/* ====== ROUTE PUBLIK ====== */}
+          <Route path="/login" element={<LoginView />} />
+          <Route path="/forgot-password" element={<ForgotPasswordView />} />
 
-          {/* Rute Terproteksi (Harus Login) */}
+          {/* ====== ROUTE TERPROTEKSI (Harus Login) ====== */}
           <Route element={<ProtectedRoute />}>
+            
+            {/* Rute Interceptor Setup Password (Wajib Login, Tapi Belum Aktif) */}
+            <Route path="/setup-password" element={<SetupPasswordView />} />
+
             {/* ====== ROUTE PENGHUNI ====== */}
             <Route path="/profile/edit" element={<ProfileEditView />} />
             <Route path="/dashboard" element={<PenghuniDashboardView />} />
@@ -57,9 +69,7 @@ function App() {
             <Route path="/sewa/detail/:id" element={<DetailBayarView />} />
 
             {/* ====== ROUTE ADMIN ====== */}
-            {/* Hapus Route /admin mandiri, pindahkan semua ke dalam AdminLayout */}
             <Route path="/admin" element={<AdminLayout />}>
-              {/* index = default route saat user akses /admin */}
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<AdminDashboardView />} />
               <Route path="kamar" element={<KelolaKamarView />} />
@@ -75,8 +85,8 @@ function App() {
             </Route>
           </Route>
 
-          {/* Catch-all route (404 Fallback) */}
-          <Route path="*" element={<Navigate to="/auth" replace />} />
+          {/* Catch-all route (404 Fallback) diarahkan kembali ke login */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </MobileLayout>
     </BrowserRouter>

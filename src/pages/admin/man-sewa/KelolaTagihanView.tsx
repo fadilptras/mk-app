@@ -104,13 +104,11 @@ export default function KelolaTagihanView() {
   return (
     <div className="px-5 mt-6 space-y-6 pb-10">
       
-      {/* Header */}
       <div>
         <h1 className="text-xl font-black text-[#0D2F5C] uppercase tracking-widest">Kelola Tagihan</h1>
         <p className="text-[#7A93B5] text-xs font-medium mt-1">Pantau pembayaran dan kelola tunggakan penghuni</p>
       </div>
 
-      {/* Tabs */}
       <div className="bg-slate-100 p-1.5 rounded-2xl flex gap-1 relative overflow-x-auto custom-scrollbar">
         <button onClick={() => { setActiveTab("verifikasi"); setFilterPeriode("all"); }} className={`flex-1 min-w-[110px] flex justify-center items-center gap-1.5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all z-10 ${activeTab === "verifikasi" ? "bg-white text-amber-500 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>
           <Clock className="w-4 h-4" /> Verifikasi
@@ -124,7 +122,6 @@ export default function KelolaTagihanView() {
         </button>
       </div>
       
-      {/* KONTEN VERIFIKASI */}
       {activeTab === "verifikasi" && (
         <div className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-300">
           {loading ? (
@@ -132,10 +129,10 @@ export default function KelolaTagihanView() {
                  {[1, 2].map(i => <div key={i} className="bg-slate-100 h-24 w-full rounded-2xl"></div>)}
              </div>
           ) : pendingList.length === 0 ? (
-             <div className="bg-emerald-50 border border-emerald-100 rounded-3xl p-8 flex flex-col items-center justify-center gap-3 text-center">
-                 <ShieldCheck className="w-10 h-10 text-emerald-400 mb-2" />
-                 <p className="text-emerald-700 text-xs font-black uppercase tracking-widest">KOSONG!</p>
-                 <p className="text-emerald-600/70 text-[10px] font-medium max-w-[200px]">Tidak ada tagihan yang perlu diverifikasi saat ini.</p>
+             <div className="bg-amber-50 border border-amber-100 rounded-3xl p-8 flex flex-col items-center justify-center gap-2 text-center shadow-sm">
+                 <ShieldCheck className="w-10 h-10 text-amber-400 mb-1" />
+                 <p className="text-amber-800 text-xs font-black uppercase tracking-widest">KOSONG!</p>
+                 <p className="text-amber-700/70 text-[10px] font-medium max-w-[200px]">Tidak ada tagihan yang perlu diverifikasi saat ini.</p>
              </div>
           ) : (
             <div className="grid grid-cols-1 gap-3">
@@ -159,12 +156,9 @@ export default function KelolaTagihanView() {
         </div>
       )}
 
-      {/* KONTEN DAFTAR AKTIF & RIWAYAT */}
       {(activeTab === "daftar" || activeTab === "riwayat") && (
         <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-          
           <div className="bg-white p-4 rounded-3xl shadow-[0_4px_20px_rgba(13,47,92,0.05)] border border-slate-100 flex flex-col gap-4">
-            
             {activeTab === "daftar" && (
               <div className="flex gap-2 bg-slate-50 p-1.5 rounded-2xl w-full overflow-x-auto custom-scrollbar">
                 <button onClick={() => setFilterStatus("all")} className={`flex-1 min-w-[80px] flex items-center justify-center py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${filterStatus === "all" ? "bg-[#0D2F5C] text-white shadow-md" : "text-slate-500 hover:bg-slate-200"}`}>
@@ -178,7 +172,6 @@ export default function KelolaTagihanView() {
                 </button>
               </div>
             )}
-
             <div className="flex flex-col md:flex-row gap-3">
                 <div className="relative md:w-1/3">
                     <CalendarDays className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -205,7 +198,9 @@ export default function KelolaTagihanView() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {!loading && filteredTagihan.length === 0 ? (
               <div className="col-span-full bg-white p-8 rounded-3xl border border-slate-100 text-center shadow-sm">
-                <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Tidak ada data yang sesuai filter.</p>
+                <Search className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-slate-400 text-xs font-black uppercase tracking-widest">TIDAK DITEMUKAN</p>
+                <p className="text-slate-400 text-[10px] font-medium mt-1">Tidak ada data tagihan yang sesuai dengan filter.</p>
               </div>
             ) : (
               filteredTagihan.map((item) => {
@@ -220,14 +215,12 @@ export default function KelolaTagihanView() {
                           <span className="text-[10px] font-black text-[#7A93B5] uppercase tracking-widest block mb-1">Kamar {item.user?.room?.room_number || "--"}</span>
                           <p className="text-sm font-black text-[#0D2F5C] truncate group-hover:text-blue-600 transition-colors">{item.user?.profile?.nama_lengkap || "Tanpa Nama"}</p>
                       </div>
-                      
                       {overdue && (
                         <span className={`text-[8px] font-black px-2 py-1 rounded-md uppercase flex items-center gap-1 shrink-0 ${tunggakanBulan > 0 ? 'bg-rose-600 text-white animate-pulse' : 'bg-rose-100 text-rose-700'}`}>
                           <AlertTriangle className="w-3 h-3" /> 
                           {tunggakanBulan > 0 ? `Nunggak ${tunggakanBulan} Bln` : "Telat"}
                         </span>
                       )}
-
                       {activeTab === "riwayat" && (
                         <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 text-[8px] font-black px-2 py-1 rounded-md uppercase shrink-0">
                           Selesai

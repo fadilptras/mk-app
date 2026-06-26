@@ -9,7 +9,7 @@ export default function AdminLayout() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate('/auth');
+    navigate('/login');
   };
 
   const isActive = (path: string) => location.pathname === path || (path === '/admin/dashboard' && location.pathname === '/admin');

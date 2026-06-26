@@ -3,8 +3,12 @@ import { supabase } from '../../../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
 import toast from 'react-hot-toast';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY; 
+const supabaseUrl = 
+    import.meta.env.VITE_SUPABASE_URL || 
+    "https://rsaeygzjqpuvuqeyjpnr.supabase.co";
+const anonKey = 
+    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 
+    "sb_publishable_y7gJJIZxEDYZhpH4SNOCRg_gN4c4RUU";
 
 // Dibuat di luar agar tidak muncul warning "Multiple GoTrueClient instances"
 const signupClient = createClient(supabaseUrl, anonKey, {

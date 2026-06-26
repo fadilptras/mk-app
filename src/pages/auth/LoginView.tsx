@@ -34,7 +34,7 @@ export default function LoginView() {
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="admin@mutiarakost.com"
+                            placeholder="mutiara@gmail.com"
                             className="w-full h-[52px] px-5 rounded-2xl border border-white/60 focus:outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/20 transition-all font-semibold bg-white/50 text-sm text-gray-800 shadow-inner"
                             required
                         />

@@ -14,14 +14,12 @@ export const ProtectedRoute = () => {
     useEffect(() => {
         const checkAuth = async () => {
             setLoading(true);
-            
-            // 1. Cek Sesi (Token Login)
+
             const { data: { session } } = await supabase.auth.getSession();
             
             if (session) {
                 setAuthenticated(true);
-                
-                // 2. Jika ada sesi, ambil detail status akun dari database
+
                 const { data: userData } = await supabase
                     .from('users')
                     .select('status_akun, role')
@@ -41,7 +39,6 @@ export const ProtectedRoute = () => {
 
         checkAuth();
 
-        // 3. Listener real-time jika ada perubahan sesi
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             if (!session) {
                 setAuthenticated(false);
@@ -74,10 +71,8 @@ export const ProtectedRoute = () => {
         return <Navigate to="/login" replace />; 
     }
 
-    // ==========================================
-    // LOGIKA PENCEGATAN (INTERCEPTOR KEAMANAN)
-    // ==========================================
     const isSetupPage = location.pathname === '/setup-password';
+    const isAdminRoute = location.pathname.startsWith('/admin');
 
     // CELAH 1 DITUTUP: Akun belum aktif TAPI mencoba akses halaman selain setup
     if (role !== 'admin' && statusAkun === 'belum_aktif' && !isSetupPage) {
@@ -87,6 +82,17 @@ export const ProtectedRoute = () => {
     // CELAH 3 DITUTUP: Akun sudah aktif TAPI iseng mencoba akses halaman setup
     if (statusAkun === 'aktif' && isSetupPage) {
         return <Navigate to="/dashboard" replace />;
+    }
+
+    // CELAH 4 DITUTUP: Proteksi Akses Berdasarkan Role Admin vs Penghuni
+    if (isAdminRoute && role !== 'admin') {
+        // Jika penghuni iseng akses rute /admin/..., tendang ke dashboard penghuni
+        return <Navigate to="/dashboard" replace />;
+    }
+
+    if (!isAdminRoute && role === 'admin' && !isSetupPage) {
+        // Jika admin iseng akses rute penghuni, tendang ke dashboard admin
+        return <Navigate to="/admin/dashboard" replace />;
     }
 
     // Jika semua pengecekan aman, silakan masuk ke rute yang dituju

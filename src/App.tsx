@@ -27,7 +27,6 @@ import AdminLayout from "./components/layout/AdminLayout";
 import AdminDashboardView from "./pages/admin/dashboard/AdminDashboardView";
 import KelolaKamarView from "./pages/admin/man-kamar/KelolaKamarView";
 import KelolaPenghuniView from "./pages/admin/man-penghuni/KelolaPenghuniView";
-import SetListrikView from "./pages/admin/man-listrik/SetListrikView";
 import SetWifiView from "./pages/admin/man-wifi/SetWifiView";
 import KelolaLaporanView from "./pages/admin/man-lapor/KelolaLaporanView";
 import KelolaTagihanView from "./pages/admin/man-sewa/KelolaTagihanView";
@@ -74,7 +73,6 @@ function App() {
               <Route path="dashboard" element={<AdminDashboardView />} />
               <Route path="kamar" element={<KelolaKamarView />} />
               <Route path="penghuni" element={<KelolaPenghuniView />} />
-              <Route path="listrik" element={<SetListrikView />} />
               <Route path="wifi" element={<SetWifiView />} />
               <Route path="laporan" element={<KelolaLaporanView />} />
               <Route path="tagihan" element={<KelolaTagihanView />} />

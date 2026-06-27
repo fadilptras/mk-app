@@ -7,31 +7,40 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      // Mengubah strategi menjadi injectManifest agar kita bisa menulis logika Push Notification secara custom
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts', // Menunjuk ke file Service Worker yang akan kita buat
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'robots.txt'],
       manifest: {
         name: 'Mutiara Kost',
         short_name: 'Mutiara Kost',
         description: 'Aplikasi Manajemen dan Layanan Penghuni Mutiara Kost',
-        theme_color: '#0D2F5C', // Warna tema bar HP (Midnight Navy kita)
-        background_color: '#F0F4F8', // Latar belakang splash screen (Biru soft kita)
+        theme_color: '#0D2F5C', 
+        background_color: '#F0F4F8', 
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
         icons: [
           {
-            src: 'favicon.svg',
+            src: 'pwa-192x192.png', 
             sizes: '192x192',
-            type: 'image/svg+xml',
+            type: 'image/png',
           },
           {
-            src: 'favicon.svg',
+            src: 'pwa-512x512.png', 
             sizes: '512x512',
-            type: 'image/svg+xml',
+            type: 'image/png',
             purpose: 'any maskable',
           }
         ],
       },
+      // Mengaktifkan fitur PWA selama development (npm run dev) untuk mempermudah proses testing
+      devOptions: {
+        enabled: true,
+        type: 'module',
+      }
     }),
   ],
 });

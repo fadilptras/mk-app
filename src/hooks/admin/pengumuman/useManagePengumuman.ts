@@ -8,6 +8,8 @@ export interface Pengumuman {
   content: string;
   type: string;
   created_at: string;
+  expires_at?: string | null;
+  is_active?: boolean;
 }
 
 export function useManagePengumuman() {
@@ -27,12 +29,42 @@ export function useManagePengumuman() {
   }, []);
 
   const sendAnnounce = async (data: Omit<Pengumuman, 'id' | 'created_at'>) => {
-    const { error } = await supabase.from("announcements").insert([data]);
+    const { error } = await supabase.from("announcements").insert([{ ...data, is_active: true }]);
     if (error) {
-      toast.error("Gagal share pengumuman");
+      toast.error(`Gagal share: ${error.message}`);
       return false;
     }
+
+    try {
+      const { data: usersData, error: usersError } = await supabase
+        .from('users').select('id').neq('role', 'admin');
+
+      if (!usersError && usersData && usersData.length > 0) {
+        const bulkNotifications = usersData.map((u) => ({
+          user_id: u.id,
+          type: 'info',
+          title: data.type.toLowerCase().includes('maintenance') ? 'Info Maintenance' : 'Pengumuman Baru',
+          message: data.title, 
+        }));
+        await supabase.from('notifications').insert(bulkNotifications);
+      }
+    } catch (err) {
+      console.error("Gagal broadcast:", err);
+    }
+
     toast.success("Pengumuman terpasang!");
+    fetchAnnouncements();
+    return true;
+  };
+
+  // FUNGSI BARU: Menghentikan pengumuman
+  const stopAnnounce = async (id: string) => {
+    const { error } = await supabase.from("announcements").update({ is_active: false }).eq("id", id);
+    if (error) {
+      toast.error(`Gagal menghentikan: ${error.message}`);
+      return false;
+    }
+    toast.success("Pengumuman dihentikan!");
     fetchAnnouncements();
     return true;
   };
@@ -40,16 +72,17 @@ export function useManagePengumuman() {
   const deleteAnnounce = async (id: string) => {
     const { error } = await supabase.from("announcements").delete().eq("id", id);
     if (error) {
-      toast.error("Gagal menghapus pengumuman");
-    } else {
-      toast.success("Pengumuman dihapus");
-      fetchAnnouncements();
+      toast.error(`Gagal menghapus: ${error.message}`);
+      return false;
     }
+    toast.success("Pengumuman dihapus!");
+    fetchAnnouncements();
+    return true;
   };
 
   useEffect(() => {
     fetchAnnouncements();
   }, [fetchAnnouncements]);
 
-  return { announcements, loading, sendAnnounce, deleteAnnounce };
+  return { announcements, loading, sendAnnounce, stopAnnounce, deleteAnnounce, refreshAnnouncements: fetchAnnouncements };
 }

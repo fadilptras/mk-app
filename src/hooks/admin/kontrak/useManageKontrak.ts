@@ -91,6 +91,25 @@ export const useManageKontrak = () => {
         
       if (errUser) throw errUser;
 
+      // ==========================================
+      // [TAMBAHAN]: TRIGGER NOTIFIKASI START
+      // ==========================================
+      const isPerpanjang = kontrakData.jenis_kontrak === 'perpanjang';
+      const title = isPerpanjang ? 'Perpanjangan Sewa Disetujui' : 'Kontrak Baru Disetujui';
+      const message = isPerpanjang
+        ? `Pengajuan perpanjangan sewa kamu selama ${kontrakData.lama_sewa} bulan telah disetujui admin. Tagihan bulan ini sudah diterbitkan.`
+        : `Selamat datang! Pengajuan sewa baru kamu selama ${kontrakData.lama_sewa} bulan telah disetujui. Tagihan pertamamu sudah otomatis diterbitkan.`;
+
+      await supabase.from('notifications').insert({
+        user_id: kontrakData.user_id,
+        type: 'kontrak',
+        title: title,
+        message: message,
+      });
+      // ==========================================
+      // [TAMBAHAN]: TRIGGER NOTIFIKASI END
+      // ==========================================
+
       toast.success('Kontrak disetujui! Tagihan otomatis dibuat oleh sistem.');
       await fetchKontrak();
     } catch (error: any) {
@@ -103,6 +122,10 @@ export const useManageKontrak = () => {
 
   const tolakKontrak = async (id: string, alasan: string) => {
     setIsUpdating(true);
+
+    // [TAMBAHAN]: Cari data kontrak yang ditolak untuk mendapatkan user_id dan jenis_kontrak
+    const targetKontrak = kontrak.find((k) => k.id === id);
+
     try {
       const { data: authData } = await supabase.auth.getUser();
       const adminId = authData.user?.id;
@@ -117,6 +140,24 @@ export const useManageKontrak = () => {
         .eq('id', id);
 
       if (error) throw error;
+
+      // ==========================================
+      // [TAMBAHAN]: TRIGGER NOTIFIKASI START
+      // ==========================================
+      if (targetKontrak) {
+        const title = 'Pengajuan Kontrak Ditolak';
+        const message = `Maaf, pengajuan kontrak ${targetKontrak.jenis_kontrak} kamu ditolak oleh admin. Alasan: ${alasan}. Silakan hubungi admin atau ajukan ulang.`;
+
+        await supabase.from('notifications').insert({
+          user_id: targetKontrak.user_id,
+          type: 'kontrak',
+          title: title,
+          message: message,
+        });
+      }
+      // ==========================================
+      // [TAMBAHAN]: TRIGGER NOTIFIKASI END
+      // ==========================================
 
       toast.success('Kontrak berhasil ditolak.');
       await fetchKontrak();

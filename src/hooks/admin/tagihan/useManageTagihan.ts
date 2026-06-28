@@ -66,6 +66,9 @@ export function useAdminTagihan() {
   const verifikasiTagihan = async (id: string, isApproved: boolean, rejectReason?: string) => {
     setIsUpdating(true);
     
+    // [TAMBAHAN]: Cari data tagihan yang sedang diakses untuk mendapatkan user_id dan periode
+    const targetTagihan = tagihan.find((t) => t.id === id);
+    
     const updatePromise = async () => {
       const updateData: any = {
         status: isApproved ? "paid" : "unpaid",
@@ -87,6 +90,29 @@ export function useAdminTagihan() {
         .eq("id", id);
 
       if (error) throw error;
+
+      // ==========================================
+      // [TAMBAHAN]: TRIGGER NOTIFIKASI START
+      // ==========================================
+      if (targetTagihan) {
+        const title = isApproved 
+          ? 'Pembayaran Berhasil Diverifikasi' 
+          : 'Pembayaran Sewa Ditolak';
+          
+        const message = isApproved
+          ? `Terima kasih! Pembayaran sewa kamar untuk periode ${targetTagihan.periode_tagihan} telah berhasil diverifikasi oleh admin.`
+          : `Maaf, bukti pembayaran untuk periode ${targetTagihan.periode_tagihan} ditolak admin. Alasan: ${rejectReason || 'Bukti tidak valid'}. Silakan unggah ulang.`;
+
+        await supabase.from('notifications').insert({
+          user_id: targetTagihan.user_id,
+          type: 'tagihan',
+          title: title,
+          message: message,
+        });
+      }
+      // ==========================================
+      // [TAMBAHAN]: TRIGGER NOTIFIKASI END
+      // ==========================================
 
       setTagihan((prev) =>
         prev.map((t) => (t.id === id ? { ...t, ...updateData } : t))

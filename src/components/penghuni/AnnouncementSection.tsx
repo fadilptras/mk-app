@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useKontrak } from '../../hooks/useKontrak';
 import { supabase } from '../../lib/supabase';
 import { useProfileCheck } from '../../hooks/useProfileCheck';
+import { requestNotificationPermission } from '../../lib/firebase';
 
 interface Announcement {
   id: string;
@@ -17,12 +18,12 @@ export default function AnnouncementSection() {
   const { activeContract, getRemainingDays } = useKontrak();
   
   // 1. Ambil data profil DAN pastikan kita tahu status loading-nya
-  // (Jika hook useProfileCheck tidak mengekspor 'loading', kita cek dari undefined)
-  const { profileData, loading: profileLoading } = useProfileCheck(); 
+  const { profileData, loading: profileLoading, user } = useProfileCheck(); 
   
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [isAnnouncementsLoading, setIsAnnouncementsLoading] = useState(true);
   const [sisaHari, setSisaHari] = useState<number | null>(null);
+  const [showNotifBanner, setShowNotifBanner] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -55,9 +56,58 @@ export default function AnnouncementSection() {
     }
   }, [activeContract, getRemainingDays]);
 
-  // ==========================================
-  // KUNCI PERBAIKAN: MASTER LOADING STATE
-  // ==========================================
+  // Cek apakah user sudah punya fcm_token untuk menampilkan banner
+  useEffect(() => {
+    if (profileData && !profileData.fcm_token) {
+      setShowNotifBanner(true);
+    } else {
+      setShowNotifBanner(false);
+    }
+  }, [profileData]);
+
+  // Fungsi aktivasi notifikasi
+  const handleActivateNotif = async () => {
+    // Cek dulu apakah browser mendukung Notification API sama sekali
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      alert('Browser ini tidak mendukung notifikasi push.');
+      return;
+    }
+
+    // Kalau user sudah pernah menolak izin sebelumnya, browser tidak akan
+    // menampilkan prompt lagi -- kasih tahu user harus ubah manual di pengaturan browser
+    if (Notification.permission === 'denied') {
+      alert('Izin notifikasi diblokir. Silakan aktifkan izin notifikasi untuk situs ini lewat pengaturan browser Anda.');
+      return;
+    }
+
+    try {
+      const token = await requestNotificationPermission();
+
+      if (token) {
+        const { error } = await supabase
+          .from('users')
+          .update({ fcm_token: token })
+          .eq('id', user?.id);
+
+        if (error) {
+          console.error('Gagal menyimpan fcm_token ke database:', error);
+          alert('Izin notifikasi diberikan, tapi gagal menyimpan ke server. Coba lagi.');
+          return;
+        }
+
+        setShowNotifBanner(false);
+        alert('Notifikasi berhasil diaktifkan!');
+      } else {
+        // token null/undefined: izin ditolak saat prompt, atau proses pengambilan token gagal
+        console.warn('requestNotificationPermission() tidak mengembalikan token.');
+        alert('Aktivasi notifikasi gagal atau dibatalkan. Silakan coba lagi.');
+      }
+    } catch (err) {
+      console.error('Gagal mengaktifkan notifikasi:', err);
+      alert('Terjadi kesalahan saat mengaktifkan notifikasi: ' + (err instanceof Error ? err.message : String(err)));
+    }
+  };
+
   // Kita pastikan animasi loading terus berjalan sampai Pengumuman DAN Profil siap.
   const isProfileDataLoading = profileLoading !== undefined ? profileLoading : profileData === undefined;
   const isAllReady = !isAnnouncementsLoading && !isProfileDataLoading;
@@ -67,6 +117,22 @@ export default function AnnouncementSection() {
 
   return (
     <div className="space-y-4">
+      {/* 0. BANNER AKTIVASI NOTIFIKASI (Independen, render duluan tanpa menunggu pengumuman) */}
+      {showNotifBanner && (
+        <div className="bg-gradient-to-r from-rose-500 to-pink-600 p-4 rounded-[24px] shadow-lg flex items-center justify-between border border-rose-400">
+          <div className="flex items-center gap-3">
+            <div className="bg-white/20 p-2 rounded-xl">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+            </div>
+            <div>
+              <p className="text-white text-[11px] font-black uppercase">Aktifkan Notifikasi</p>
+              <p className="text-rose-100 text-[9px] font-bold">Dapatkan info tagihan real-time!</p>
+            </div>
+          </div>
+          <button onClick={handleActivateNotif} className="bg-white text-rose-600 text-[10px] font-black px-4 py-2 rounded-xl shadow-md active:scale-95 transition-all">AKTIFKAN</button>
+        </div>
+      )}
+
       {/* 1. BANNER KONTRAK (Independen, render duluan tanpa menunggu pengumuman) */}
       {sisaHari !== null && sisaHari <= 3 && sisaHari >= 0 && (
         <div className="bg-rose-600 rounded-[24px] p-5 shadow-lg shadow-rose-200 border border-rose-400 relative overflow-hidden animate-pulse">

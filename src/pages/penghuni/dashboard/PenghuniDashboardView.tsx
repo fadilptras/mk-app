@@ -63,43 +63,33 @@ export default function PenghuniDashboardView() {
     });
   };
 
-  // MENGGABUNGKAN DAN MENGURUTKAN AKTIVITAS
   const getAllActivities = () => {
-    // 1. Format tagihan
     const mappedTagihan = riwayatTagihan.map((t) => ({
       ...t,
       activity_type: "tagihan",
       sort_date: new Date(t.updated_at || t.created_at).getTime(),
     }));
 
-    // 2. Format laporan
     const mappedLaporan = riwayatLaporan.map((l) => ({
       ...l,
       activity_type: "laporan",
       sort_date: new Date(l.created_at).getTime(),
     }));
 
-    // 3. Gabungkan dan urutkan dari yang terbaru, lalu ambil 3 teratas
     const combined = [...mappedTagihan, ...mappedLaporan];
     return combined.sort((a, b) => b.sort_date - a.sort_date).slice(0, 3);
   };
 
   const activities = getAllActivities();
 
-  // Helper status badge laporan
   const getReportStatusText = (status: string) => {
     switch (status.toUpperCase()) {
-      case "PENDING":
-        return { text: "Menunggu", color: "text-amber-500" };
+      case "PENDING": return { text: "Menunggu", color: "text-amber-500" };
       case "PROCESSING":
-      case "IN_PROGRESS":
-        return { text: "Diproses", color: "text-blue-500" };
-      case "RESOLVED":
-        return { text: "Selesai", color: "text-emerald-500" };
-      case "REJECTED":
-        return { text: "Ditolak", color: "text-rose-500" };
-      default:
-        return { text: status, color: "text-gray-500" };
+      case "IN_PROGRESS": return { text: "Diproses", color: "text-blue-500" };
+      case "RESOLVED": return { text: "Selesai", color: "text-emerald-500" };
+      case "REJECTED": return { text: "Ditolak", color: "text-rose-500" };
+      default: return { text: status, color: "text-gray-500" };
     }
   };
 
@@ -118,105 +108,35 @@ export default function PenghuniDashboardView() {
         <div className="bg-gradient-to-br from-indigo-800 via-indigo-700 to-blue-700 pt-6 pb-16 px-5 rounded-b-[40px] shadow-lg relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl"></div>
           <div className="flex justify-between items-center relative z-10">
-            {/* Kiri: Profil & Nama */}
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate("/profile/edit")}
-                className="relative group focus:outline-none"
-              >
+              <button onClick={() => navigate("/profile/edit")} className="relative group focus:outline-none">
                 <div className="w-12 h-12 bg-white/20 p-1 rounded-full backdrop-blur-md border border-white/30 transform group-active:scale-95 transition-all shadow-xl">
                   <div className="w-full h-full bg-indigo-50 rounded-full overflow-hidden flex items-center justify-center border border-white/50">
                     {profileData?.foto_profile ? (
-                      <img
-                        src={profileData.foto_profile}
-                        alt="User"
-                        className="w-full h-full object-cover"
-                      />
+                      <img src={profileData.foto_profile} alt="User" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-indigo-700 font-black text-lg uppercase">
-                        {profileData?.nama_lengkap?.charAt(0) ||
-                          user?.email?.charAt(0)}
-                      </span>
+                      <span className="text-indigo-700 font-black text-lg uppercase">{profileData?.nama_lengkap?.charAt(0) || user?.email?.charAt(0)}</span>
                     )}
                   </div>
                 </div>
-                <div className="absolute right-0 bottom-0 bg-pink-500 border-2 border-white w-4 h-4 rounded-full flex items-center justify-center shadow-md">
-                  <svg
-                    className="w-2.5 h-2.5 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                </div>
               </button>
               <div>
-                <p className="text-indigo-200 text-xs font-semibold tracking-wide mb-0.5">
-                  Halo, Selamat Datang 👋
-                </p>
-                <h1 className="text-xl font-black text-white tracking-tight leading-tight line-clamp-2 max-w-[170px]">
-                  {profileData?.nama_lengkap || "Penghuni"}
-                </h1>
+                <p className="text-indigo-200 text-xs font-semibold tracking-wide mb-0.5">Halo, Selamat Datang 👋</p>
+                <h1 className="text-xl font-black text-white tracking-tight leading-tight line-clamp-2 max-w-[170px]">{profileData?.nama_lengkap || "Penghuni"}</h1>
               </div>
             </div>
-
-            {/* Kanan: Aksi (Notifikasi & Logout) */}
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => navigate("/notifications")}
-                aria-label="Notifikasi"
-                className="bg-white/20 p-2.5 rounded-[16px] backdrop-blur-md border border-white/30 text-white shadow-lg active:scale-90 transition-all"
-              >
-                <div className="relative">
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
-                    />
-                  </svg>
-                  <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-rose-500 border-2 border-indigo-700 rounded-full animate-pulse"></span>
-                </div>
+              <button onClick={() => navigate("/notifications")} className="bg-white/20 p-2.5 rounded-[16px] backdrop-blur-md border border-white/30 text-white shadow-lg active:scale-90 transition-all">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
               </button>
-
-              {/* Tombol Logout Baru yang Menyatu dengan Notifikasi */}
-              <button
-                onClick={async () => {
-                  await supabase.auth.signOut();
-                  navigate("/login");
-                }}
-                className="flex items-center justify-center p-2.5 bg-rose-100/90 backdrop-blur-md border border-rose-200 rounded-[16px] text-rose-600 shadow-lg active:scale-90 transition-all"
-                aria-label="Logout"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 ml-0.5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2.5}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                  />
-                </svg>
+              <button onClick={async () => { await supabase.auth.signOut(); navigate("/login"); }} className="flex items-center justify-center p-2.5 bg-rose-100/90 backdrop-blur-md border border-rose-200 rounded-[16px] text-rose-600 shadow-lg active:scale-90 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
               </button>
             </div>
           </div>
         </div>
 
         <div className="px-5 -mt-10 relative z-20 space-y-5">
-          {/* SECTION PENGUMUMAN */}
           <AnnouncementSection />
 
           {/* GRID 4 FITUR */}

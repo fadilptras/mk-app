@@ -10,7 +10,7 @@ export default defineConfig({
       // Mengubah strategi menjadi injectManifest agar kita bisa menulis logika Push Notification secara custom
       strategies: 'injectManifest',
       srcDir: 'src',
-      filename: 'sw.ts', // Menunjuk ke file Service Worker yang akan kita buat
+      filename: 'sw.ts', 
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'robots.txt'],
       manifest: {
@@ -36,6 +36,7 @@ export default defineConfig({
           }
         ],
       },
+      
       // Mengaktifkan fitur PWA selama development (npm run dev) untuk mempermudah proses testing
       devOptions: {
         enabled: true,

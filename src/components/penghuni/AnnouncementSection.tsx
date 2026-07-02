@@ -17,13 +17,16 @@ export default function AnnouncementSection() {
   const navigate = useNavigate();
   const { activeContract, getRemainingDays } = useKontrak();
   
-  // 1. Ambil data profil DAN pastikan kita tahu status loading-nya
+  // Ambil data profil DAN pastikan kita tahu status loading-nya
   const { profileData, loading: profileLoading, user } = useProfileCheck(); 
   
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [isAnnouncementsLoading, setIsAnnouncementsLoading] = useState(true);
   const [sisaHari, setSisaHari] = useState<number | null>(null);
   const [showNotifBanner, setShowNotifBanner] = useState(false);
+  
+  // State tambahan untuk mengunci status banner setelah sukses klik aktifkan di sesi ini
+  const [isLocallySaved, setIsLocallySaved] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -56,51 +59,64 @@ export default function AnnouncementSection() {
     }
   }, [activeContract, getRemainingDays]);
 
-  // Cek apakah user sudah punya fcm_token untuk menampilkan banner
+  // Cek validasi fcm_token dari database utk mengontrol penampilan banner
   useEffect(() => {
+    if (isLocallySaved) {
+      setShowNotifBanner(false);
+      return;
+    }
+
     if (profileData && !profileData.fcm_token) {
       setShowNotifBanner(true);
     } else {
       setShowNotifBanner(false);
     }
-  }, [profileData]);
+  }, [profileData, isLocallySaved]);
 
-  // Fungsi aktivasi notifikasi
+  // Fungsi aktivasi notifikasi yang dioptimalkan
   const handleActivateNotif = async () => {
-    // Cek dulu apakah browser mendukung Notification API sama sekali
     if (typeof window === 'undefined' || !('Notification' in window)) {
       alert('Browser ini tidak mendukung notifikasi push.');
       return;
     }
 
-    // Kalau user sudah pernah menolak izin sebelumnya, browser tidak akan
-    // menampilkan prompt lagi -- kasih tahu user harus ubah manual di pengaturan browser
     if (Notification.permission === 'denied') {
       alert('Izin notifikasi diblokir. Silakan aktifkan izin notifikasi untuk situs ini lewat pengaturan browser Anda.');
       return;
     }
 
     try {
-      const token = await requestNotificationPermission();
+      const permission = await Notification.requestPermission();
 
-      if (token) {
-        const { error } = await supabase
-          .from('users')
-          .update({ fcm_token: token })
-          .eq('id', user?.id);
+      if (permission === 'denied') {
+        alert('Izin notifikasi diblokir. Silakan aktifkan izin notifikasi untuk situs ini lewat pengaturan browser Anda.');
+        return;
+      }
 
-        if (error) {
-          console.error('Gagal menyimpan fcm_token ke database:', error);
-          alert('Izin notifikasi diberikan, tapi gagal menyimpan ke server. Coba lagi.');
-          return;
+      if (permission === 'granted') {
+        // Proses asinkron Firebase dijalankan di background setelah user menyetujui
+        const token = await requestNotificationPermission();
+
+        if (token) {
+          const { error } = await supabase
+            .from('users')
+            .update({ fcm_token: token })
+            .eq('id', user?.id);
+
+          if (error) {
+            console.error('Gagal menyimpan fcm_token ke database:', error);
+            alert('Izin notifikasi diberikan, tapi gagal menyimpan ke server. Coba lagi.');
+            return;
+          }
+
+          // Kunci state lokal agar banner langsung menghilang dan tidak ter-trigger render ulang
+          setIsLocallySaved(true);
+          setShowNotifBanner(false);
+          alert('Notifikasi berhasil diaktifkan!');
+        } else {
+          console.warn('requestNotificationPermission() tidak mengembalikan token.');
+          alert('Aktivasi notifikasi gagal atau dibatalkan. Silakan coba lagi.');
         }
-
-        setShowNotifBanner(false);
-        alert('Notifikasi berhasil diaktifkan!');
-      } else {
-        // token null/undefined: izin ditolak saat prompt, atau proses pengambilan token gagal
-        console.warn('requestNotificationPermission() tidak mengembalikan token.');
-        alert('Aktivasi notifikasi gagal atau dibatalkan. Silakan coba lagi.');
       }
     } catch (err) {
       console.error('Gagal mengaktifkan notifikasi:', err);
@@ -108,16 +124,13 @@ export default function AnnouncementSection() {
     }
   };
 
-  // Kita pastikan animasi loading terus berjalan sampai Pengumuman DAN Profil siap.
   const isProfileDataLoading = profileLoading !== undefined ? profileLoading : profileData === undefined;
   const isAllReady = !isAnnouncementsLoading && !isProfileDataLoading;
-
-  // Hanya bernilai 'true' ketika SEMUA data sudah siap dan terbukti kosong
   const isProfileIncomplete = isAllReady && (!profileData?.nama_lengkap || profileData?.nama_lengkap === '');
 
   return (
     <div className="space-y-4">
-      {/* 0. BANNER AKTIVASI NOTIFIKASI (Independen, render duluan tanpa menunggu pengumuman) */}
+      {/* 0. BANNER AKTIVASI NOTIFIKASI */}
       {showNotifBanner && (
         <div className="bg-gradient-to-r from-rose-500 to-pink-600 p-4 rounded-[24px] shadow-lg flex items-center justify-between border border-rose-400">
           <div className="flex items-center gap-3">
@@ -133,7 +146,7 @@ export default function AnnouncementSection() {
         </div>
       )}
 
-      {/* 1. BANNER KONTRAK (Independen, render duluan tanpa menunggu pengumuman) */}
+      {/* 1. BANNER KONTRAK */}
       {sisaHari !== null && sisaHari <= 3 && sisaHari >= 0 && (
         <div className="bg-rose-600 rounded-[24px] p-5 shadow-lg shadow-rose-200 border border-rose-400 relative overflow-hidden animate-pulse">
           <div className="absolute right-0 top-0 opacity-20">
@@ -156,7 +169,6 @@ export default function AnnouncementSection() {
 
       {/* 2. SKELETON / KONTEN UTAMA */}
       {!isAllReady ? (
-        /* Menahan Skeleton sampai semua data (Profil + Pengumuman) terkumpul 100% */
         <div className="h-[90px] bg-slate-100/80 animate-pulse border border-slate-200 rounded-[24px] w-full"></div>
       ) : (
         <div className="space-y-4 transition-opacity duration-300 opacity-100">
@@ -202,7 +214,6 @@ export default function AnnouncementSection() {
               );
             })
           ) : !isProfileIncomplete && (
-            /* EMPTY STATE (Tampil jika aman semua dan profil lengkap) */
             <div className="bg-white p-4 rounded-[24px] shadow-sm border border-gray-100 relative overflow-hidden flex flex-col justify-center">
               <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-emerald-400 to-green-500"></div>
               <div className="flex items-center justify-between mb-2 pl-2">

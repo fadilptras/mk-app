@@ -1,4 +1,3 @@
-// src/hooks/useProfileCheck.ts
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
@@ -33,6 +32,7 @@ export function useProfileCheck() {
           email,
           no_rek_pembayaran,
           nama_rek_pembayaran,
+          fcm_token,
           rooms ( room_number )
         `)
         .eq('id', authUser.id)
@@ -75,11 +75,5 @@ export function useProfileCheck() {
     checkUserStatus();
   }, [checkUserStatus]);
 
-  return { 
-    user, 
-    loading, 
-    isProfileComplete, 
-    profileData, 
-    refreshProfile: checkUserStatus 
-  };
+  return { loading, user, isProfileComplete, profileData, refetch: checkUserStatus };
 }

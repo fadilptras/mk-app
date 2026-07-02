@@ -11,11 +11,9 @@ precacheAndRoute(self.__WB_MANIFEST);
 self.addEventListener('push', (event) => {
   if (!event.data) return;
 
-  // Firebase biasanya mengirimkan payload dalam format JSON tertentu
   const payload = event.data.json();
   console.log("Push payload diterima di background:", payload);
 
-  // Ambil data dari object 'notification' (bawaan Firebase) atau 'data' (custom)
   const title = payload.notification?.title || payload.data?.title || 'Notifikasi Mutiara Kost';
   const body = payload.notification?.body || payload.data?.body || 'Kamu memiliki pesan baru, silakan cek aplikasi.';
   const url = payload.data?.url || '/';
@@ -23,30 +21,64 @@ self.addEventListener('push', (event) => {
   const options = {
     body: body,
     icon: '/pwa-192x192.png',
-    badge: '/pwa-192x192.png',
+    badge: '/pwa-192x192.png', 
     data: { url: url },
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  // LOGIKA PENCEGAHAN DOUBLE NOTIFICATION
+  const promiseChain = self.clients.matchAll({
+    type: 'window',
+    includeUncontrolled: true
+  }).then((windowClients) => {
+    let isAppFocused = false;
+
+    // Cek apakah ada tab aplikasi yang sedang aktif & dilihat user
+    for (let i = 0; i < windowClients.length; i++) {
+      const windowClient = windowClients[i];
+      if (windowClient.focused) {
+        isAppFocused = true;
+        break;
+      }
+    }
+
+    if (isAppFocused) {
+      // Jika aplikasi sedang dibuka, JANGAN tampilkan notifikasi OS (Biar UI Toast yang bekerja)
+      console.log('Aplikasi sedang aktif di foreground. Notifikasi OS disembunyikan.');
+      return; 
+    }
+
+    // Jika aplikasi di background / ditutup, TAMPILKAN notifikasi OS
+    return self.registration.showNotification(title, options);
+  });
+
+  event.waitUntil(promiseChain);
 });
 
-// 3. MENANGANI AKSI SAAT NOTIFIKASI DI-KLIK
+// 3. MENANGANI AKSI SAAT NOTIFIKASI OS DI-KLIK
 self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
+  event.notification.close(); // Tutup notifikasi setelah diklik
 
   const urlToOpen = event.notification.data?.url || '/';
 
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      for (let i = 0; i < windowClients.length; i++) {
-        const client = windowClients[i];
-        if (client.url.includes(urlToOpen) && 'focus' in client) {
-          return client.focus();
-        }
+  const promiseChain = self.clients.matchAll({
+    type: 'window',
+    includeUncontrolled: true
+  }).then((windowClients) => {
+    // Cari tab yang sudah terbuka
+    for (let i = 0; i < windowClients.length; i++) {
+      const client = windowClients[i];
+      // Jika tab sudah ada, fokuskan dan arahkan ke URL
+      if (client.url.includes(self.location.origin) && 'focus' in client) {
+        client.navigate(urlToOpen); // Paksa navigasi ke URL notif
+        return client.focus();
       }
-      if (self.clients.openWindow) {
-        return self.clients.openWindow(urlToOpen);
-      }
-    })
-  );
+    }
+    
+    // Jika tidak ada tab yang terbuka, buka tab baru
+    if (self.clients.openWindow) {
+      return self.clients.openWindow(urlToOpen);
+    }
+  });
+
+  event.waitUntil(promiseChain);
 });
